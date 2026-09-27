@@ -1,4 +1,4 @@
-# Three defective Rocq/Coq statements: putnam_1962_b5 (false), putnam_1962_a6 (contradictory hypotheses), putnam_1962_a2 (incomplete answer, false) — and the files no longer compile on Rocq 9.1 / MathComp 2.5
+# Three defective Rocq/Coq statements: putnam_1962_b5 (false), putnam_1962_a6 (contradictory hypotheses), putnam_1962_a2 (incomplete answer, false); and the files no longer compile on Rocq 9.1 / MathComp 2.5
 
 Benchmark commit: 4dbe26ef21563af851eedaeb82d936fe1f94fc52 (2026-09-20)
 Environments used to check: Coq 8.18.0, MathComp 2.1.0, MathComp-Analysis 1.0.0 (Ubuntu 24.04
@@ -113,7 +113,7 @@ MathComp-Analysis 1.0.0 does not have), which confirms that the transcribed
 solution set is exactly right for the Rocq reading of the integral: the proof shows
 that every solution agrees with a member of the set at every x > 0 of its domain
 (and on [0, e) in the bounded case), and that every member satisfies P on (0, +oo) or
-on some (0, e) — for the truncated family P is established on (0, 1/c), which is all
+on some (0, e); for the truncated family P is established on (0, 1/c), which is all
 the statement asks. The Isabelle file uses the
 same one-case answer as the Rocq file and appears to have the same problem.
 
@@ -175,18 +175,18 @@ the A2 proof the same lines as the A2 statement files.
 
 ## Files attached
 
-- putnam_1962_b5.v                      – current upstream statement (verbatim apart from the marked compat lines, see section 4)
-- putnam_1962_b5_statement_is_false.v   – derives False from it (compile with -R . "")
-- putnam_1962_b5_corrected.v            – proposed fix for the bound (one line differs from putnam_1962_b5.v)
-- putnam_1962_b5_corrected_proof.v      – proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
-- putnam_1962_a6.v                      – current upstream statement (verbatim)
-- putnam_1962_a6_statement_is_vacuous.v – one-line vacuous proof of it
-- putnam_1962_a6_corrected.v            – proposed fix
-- putnam_1962_a6_corrected_proof.v      – proof of the proposed fix (only axiom: Extensionality_Ensembles)
-- putnam_1962_a2.v                      – current upstream statement (verbatim apart from the marked compat lines, see section 4)
-- putnam_1962_a2_statement_is_false.v   – derives False from it (compile with -R . "")
-- putnam_1962_a2_corrected.v            – proposed fix: the Lean solution set, transcribed
-- putnam_1962_a2_corrected_proof.v      – proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
+- putnam_1962_b5.v                      - current upstream statement (verbatim apart from the marked compat lines, see section 4)
+- putnam_1962_b5_statement_is_false.v   - derives False from it (compile with -R . "")
+- putnam_1962_b5_corrected.v            - proposed fix for the bound (one line differs from putnam_1962_b5.v)
+- putnam_1962_b5_corrected_proof.v      - proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
+- putnam_1962_a6.v                      - current upstream statement (verbatim)
+- putnam_1962_a6_statement_is_vacuous.v - one-line vacuous proof of it
+- putnam_1962_a6_corrected.v            - proposed fix
+- putnam_1962_a6_corrected_proof.v      - proof of the proposed fix (only axiom: Extensionality_Ensembles)
+- putnam_1962_a2.v                      - current upstream statement (verbatim apart from the marked compat lines, see section 4)
+- putnam_1962_a2_statement_is_false.v   - derives False from it (compile with -R . "")
+- putnam_1962_a2_corrected.v            - proposed fix: the Lean solution set, transcribed
+- putnam_1962_a2_corrected_proof.v      - proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
 
 ## A broader note
 
