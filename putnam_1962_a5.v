@@ -8,7 +8,6 @@
    Verified on Rocq 9.1.0 / MathComp 2.5 (Rocq Platform 2026.07, macOS) and Coq 8.18.0 / MathComp 2.1.0 (Ubuntu 24.04):
    compiles; Print Assumptions putnam_1962_a5 = "Closed under the global context"
    (no axioms); rocqchk / coqchk: "Modules were successfully checked".
-   Companion sanity check: audit_1962_a5.v.
    About the warnings: the PutnamBench Rocq statements were written for Coq 8.x with
    MathComp 2.1. Under Rocq 9.1 / MathComp 2.5 (Rocq Platform 2026.07) the import line
    below triggers ~30 warnings emitted by MathComp itself (all_ssreflect is deprecated

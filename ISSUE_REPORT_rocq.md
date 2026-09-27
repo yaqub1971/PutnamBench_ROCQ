@@ -136,6 +136,16 @@ published fails for two reasons (the first also stops `putnam_1962_a2.v`):
     in the usual order `all_ssreflect all_algebra`, or add
     `From mathcomp Require Import ssralg.` after them.
 
+(c) `putnam_1962_a4.v` (and presumably every other file that writes derivatives with
+    MathComp-Analysis's ``f^`()`` / ``f^`(2)`` notation) fails on the MathComp-Analysis
+    that current platforms ship. Since MathComp-Analysis 1.9.0 (February 2025) these
+    notations exist only in `classical_set_scope`, which the statement never opens:
+
+        Error: Unknown interpretation for notation "_ ^` ()".
+
+    Fix: add `Local Open Scope classical_set_scope.` to the preamble (before
+    `Local Open Scope ring_scope.`, so that the ring notations keep precedence).
+
 A smaller, related point: `Require Import Ensembles QArith` (1962 A6 and, presumably,
 other files) now produces "Loading Stdlib without prefix is deprecated"; Rocq 9 wants
 `From Stdlib Require Import Ensembles QArith`. That is only a warning today.
@@ -147,7 +157,8 @@ be compiled on both toolchains; apart from those marked lines, `putnam_1962_b5.v
 `putnam_1962_a2.v` are the upstream files verbatim, `putnam_1962_b5_corrected.v` differs
 from its original in exactly one line of the statement, and `putnam_1962_a2_corrected.v`
 only in the definition of the solution set (each file also starts with an explanatory
-header comment).
+header comment). The proofs of 1962 B2 and 1962 A4 in the same repository carry the
+`Set Warnings` line of (a), and the A4 proof also the `Local Open Scope` line of (c).
 
 ## Files attached
 

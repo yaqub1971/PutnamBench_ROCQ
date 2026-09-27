@@ -1,11 +1,10 @@
-# Rocq proofs for PutnamBench: 1962 A5, 1963 A2, 1962 B5 — plus three defective statements
+# Rocq proofs for PutnamBench: 1962 A4, A5, B2, B5 and 1963 A2 — plus three defective statements
 
 [![verify](https://github.com/yaqub1971/PutnamBench_ROCQ/actions/workflows/verify.yml/badge.svg)](https://github.com/yaqub1971/PutnamBench_ROCQ/actions/workflows/verify.yml)
 
-This repository contains machine-checked Rocq/MathComp proofs of three
-[PutnamBench](https://github.com/trishullab/PutnamBench) problems, the sanity
-checks ("audits") used to make sure the proofs prove the intended statements, and
-a report on three PutnamBench Rocq statements that turned out to be defective.
+This repository contains machine-checked Rocq/MathComp proofs of five
+[PutnamBench](https://github.com/trishullab/PutnamBench) problems and a report on
+three PutnamBench Rocq statements that turned out to be defective.
 
 The proofs were produced by an LLM (Claude Fable 5.1, Anthropic) working in Rocq/MathComp,
 with me directing the work and running the checks. The purpose of the exercise is
@@ -18,8 +17,9 @@ Rocq specifically*, which is the least-exercised track of the benchmark.
 |---|---|
 | `putnam_1962_a5.v` | Proof of the upstream statement of 1962 A5, unchanged: for n ≥ 2, Σ<sub>k=1..n</sub> C(n,k)·k² = n(n+1)·2<sup>n−2</sup>. |
 | `putnam_1963_a2.v` | Proof of the upstream statement of 1963 A2, unchanged: a positive, strictly increasing, multiplicative f : ℕ → ℕ with f(2) = 2 is the identity. (One import line, `zify`, is added for the proof's tactics.) |
+| `putnam_1962_b2.v` | Proof of the upstream statement of 1962 B2, unchanged: there is a function f from ℝ to the subsets of ℕ with f(a) ⊊ f(b) whenever a < b. The witness sends a to the set of (MathComp-encoded) rationals below a. |
+| `putnam_1962_a4.v` | Proof of the upstream statement of 1962 A4, unchanged: if \|f\| ≤ 1 and \|f''\| ≤ 1 on an interval of length at least 2, then \|f'\| ≤ 2 there. The proof derives a second-order Taylor bound from MathComp-Analysis's mean value theorem. (One line of extra imports is added for the proof's libraries and tactics.) |
 | `putnam_1962_b5_corrected_proof.v` | Proof of 1962 B5 **against a corrected statement**. The upstream Rocq statement is false as written (see below), so it cannot be proved; this file proves the statement with the one-token fix applied. Apart from that fix and the two marked compatibility lines described below, the statement is the upstream text. Its proof follows the structure of a Lean proof of the same problem. |
-| `audit_1962_a5.v`, `audit_1963_a2.v` | Independent sanity checks on the two unmodified statements: the A5 identity is evaluated numerically at n = 2…7 and the side condition n ≥ 2 is shown to be necessary; for A2 the hypotheses are shown to be satisfiable and each of them necessary, and the audited statement is derived from the compiled benchmark theorem. |
 | `ISSUE_REPORT_rocq.md` | Report on the three defective upstream statements (1962 B5, A6, A2), written for the PutnamBench issue tracker. |
 | `ci/verify.sh`, `.github/workflows/verify.yml` | The verification script and the GitHub Actions workflow that runs it on every push (see "Continuous verification" below). |
 | `COVERAGE.md` | Problem-by-problem comparison with the twelve Lean solutions Humanfia published as a public preview: which of them have Rocq statements at all, and what this repository did with each. |
@@ -29,7 +29,7 @@ Rocq specifically*, which is the least-exercised track of the benchmark.
 | `putnam_1962_a2_statement_is_false.v` | Derives `False` from the upstream A2 statement: the indicator of the point 0 satisfies the benchmark's condition (its average over every [0, x] is 0) but is not of the form `a/(1 - c x)^2`, which the theorem claims every solution is. |
 | `putnam_1962_b5_corrected.v`, `putnam_1962_a6_corrected.v`, `putnam_1962_a2_corrected.v` | The proposed fixes to the three statements. The A2 fix transcribes the four-case solution set of the Lean statement; no proof of it is claimed here. |
 
-The three proof files end in `Qed`, contain no `Admitted`, `admit` or added
+The five proof files end in `Qed`, contain no `Admitted`, `admit` or added
 `Axiom`, and each is self-contained (the only dependencies are MathComp
 libraries).
 
@@ -57,7 +57,10 @@ three of the first eight statements examined could not be proved as written:
   `all_algebra all_ssreflect` (used throughout the corpus) lets MathComp 2.5's
   `all_ssreflect` override the ring notations `1` and `%:R`, so `i%:R / N%:R` in
   the statement no longer typechecks. Both points are likely to affect other
-  files in `coq/src`.
+  files in `coq/src`. **1962 A4** has a third problem of this kind: since
+  MathComp-Analysis 1.9.0 the derivative notations `f^`()` and `f^`(2)` it uses
+  exist only in `classical_set_scope`, which the statement never opens, so the
+  file does not even parse on a current installation.
 
 Full details, evidence files and proposed fixes are in
 `ISSUE_REPORT_rocq.md`. The report is being submitted to the
@@ -67,9 +70,11 @@ can be fixed upstream.
 ## How the proofs were checked
 
 Toolchain: Rocq 9.1.0 (Rocq Platform 2026.07, macOS) with the MathComp 2.5
-packages it bundles (`ssreflect`, `algebra`, `zify`; the B5 files additionally use
-`mathcomp.reals`, `lra` and `ring` from MathComp-Analysis / Algebra-Tactics; the
-A2 files use the Lebesgue integral of MathComp-Analysis 1.16.0).
+packages it bundles (`ssreflect`, `algebra`, `zify`; the B5 and A4 files
+additionally use `mathcomp.reals`, `lra` and `ring` from MathComp-Analysis /
+Algebra-Tactics, A4 also the derivatives and mean value theorem of
+MathComp-Analysis 1.16.0; the B2 files use `mathcomp.reals`; the A2 files use the
+Lebesgue integral of MathComp-Analysis 1.16.0).
 
 ### About the warnings
 
@@ -85,13 +90,14 @@ The import lines are kept exactly as upstream wrote them so that every statement
 stays identical to the benchmark's; each `.v` file repeats this note in its
 header.
 
-### Rocq 9.1 / MathComp 2.5 compatibility lines in the B5 files
+### Rocq 9.1 / MathComp 2.5 compatibility lines
 
 The four B5 files (`putnam_1962_b5.v`, `putnam_1962_b5_corrected.v`,
 `putnam_1962_b5_corrected_proof.v`, `putnam_1962_b5_statement_is_false.v`) and the
 three A2 files (`putnam_1962_a2.v`, `putnam_1962_a2_corrected.v`,
 `putnam_1962_a2_statement_is_false.v`) each contain a few lines marked
-`(* compat: ... *)`:
+`(* compat: ... *)`; `putnam_1962_b2.v` contains only the second of them, and
+`putnam_1962_a4.v` the second and the third:
 
 * `From mathcomp Require Import ssralg.` right after the upstream imports. Since
   MathComp 2.5, `all_ssreflect` is a deprecated umbrella that re-declares the
@@ -103,6 +109,11 @@ three A2 files (`putnam_1962_a2.v`, `putnam_1962_a2_corrected.v`,
   `notation-overridden` warning of its own.
 * `Set Warnings "-declaration-outside-section,-local-declaration".` right before
   the upstream `Variable R : realType.`, which Rocq 9.0 and later otherwise reject.
+* `Local Open Scope classical_set_scope.` (A4 only) right before the upstream
+  `Local Open Scope ring_scope.`: since MathComp-Analysis 1.9.0 the derivative
+  notations `f^`()` and `f^`(2)` exist only in that scope, so without the line the
+  statement does not parse. It is opened *before* `ring_scope` so that the ring
+  notations keep precedence.
 
 They change nothing mathematically. Apart from the header comments,
 `diff putnam_1962_b5.v putnam_1962_b5_corrected.v` shows exactly one differing
@@ -117,20 +128,23 @@ Each proof went through four checks:
 2. **Assumptions.** A two-line file `Require <file>. Print Assumptions
    <file>.<theorem>.` compiled with `-R . ""` prints
    `Closed under the global context`, i.e. the proof depends on no axioms.
-   (For the B5 files, `Print Assumptions` additionally lists the
-   `Variable R : realType` that the upstream statement itself declares, and the
-   classical axioms that `mathcomp.reals` introduces — propositional and
-   functional extensionality, indefinite description. Both come from the
-   statement and the library, not from the proof.)
+   (For the B5, B2 and A4 proofs, whose statements are about real numbers,
+   `Print Assumptions` additionally lists the `Variable R : realType` that the
+   upstream statement itself declares, and the classical axioms that
+   `mathcomp.reals` introduces — propositional and functional extensionality,
+   indefinite description. Both come from the statement and the library, not
+   from the proof.)
 3. **Independent kernel check.** `rocqchk -R . "" <file>` re-verifies the
    compiled `.vo` with Rocq's standalone checker, which does not trust the
    compiler that produced it.
 4. **Statement integrity.** The `Definition` / `Theorem` text of
-   `putnam_1962_a5.v` and `putnam_1963_a2.v` is character-for-character the
-   upstream PutnamBench text; the only differences are the proof scripts, helper
-   lemmas, and (for A2) one added tactic-library import. For B5 the statement is the upstream text plus the one-token
-   fix and the marked compatibility lines. The audit files provide the
-   additional "is this the right statement?" evidence described above.
+   `putnam_1962_a5.v`, `putnam_1963_a2.v`, `putnam_1962_b2.v` and
+   `putnam_1962_a4.v` is character-for-character the upstream PutnamBench text;
+   the only differences are the proof scripts, helper lemmas and definitions,
+   and (for 1963 A2 and 1962 A4) added library imports. For B5 the statement is
+   the upstream text plus the one-token fix and the marked compatibility lines.
+   The statement-integrity step of `ci/verify.sh` re-checks this against the
+   upstream files on every run.
 
 ## Verification status (27 September 2026)
 
@@ -140,9 +154,10 @@ their own lines (the only
 warnings are the ones MathComp and the standard library emit at the import line,
 identical for every user). `Print Assumptions` reports `Closed under the global
 context` for `putnam_1962_a5` and `putnam_1963_a2`, and only `R` plus the three
-classical axioms of `mathcomp.reals` for `putnam_1962_b5`. `rocqchk` reports
-`Modules were successfully checked` for all three proofs. Both audit files and all
-nine bug-report evidence files compile, with the A6 vacuity and the B5 and A2
+classical axioms of `mathcomp.reals` for `putnam_1962_b5`, `putnam_1962_b2` and
+`putnam_1962_a4`. `rocqchk` reports `Modules were successfully checked` for all
+five proofs. All nine bug-report evidence files compile, with the A6 vacuity and
+the B5 and A2
 falsity derivations closing as described above (each `False` derivation lists, as
 its only assumptions, the admitted upstream theorem, `R`, and the classical axioms
 of `mathcomp.reals`).
@@ -157,17 +172,18 @@ MathComp-Analysis 1.16.0, zify and Algebra-Tactics, and runs `ci/verify.sh`, whi
 performs the four checks described above on all fourteen files: it compiles them
 in dependency order and fails on any warning from a file's own lines, checks the
 `Print Assumptions` output of every proof and refutation, runs `rocqchk` on the
-three proofs, and downloads the upstream PutnamBench files at the pinned commit to
+five proofs, and downloads the upstream PutnamBench files at the pinned commit to
 confirm that every statement here is byte-identical to upstream apart from the
 documented changes. The run's log is public. The same script can be run locally
-with `bash ci/verify.sh` from a clone of the repository.
+with `bash ci/verify.sh` from a clone of the repository; when every check passes
+it removes the build products it created, leaving the folder as it found it.
 
 ## Compiling the files
 
 You need **Rocq 9.1 with MathComp 2.5**, which is what the Rocq Platform 2026.07
-release installs and the toolchain everything here was verified on; the B5 and A2
-files additionally need MathComp-Analysis and Algebra-Tactics, also part of the
-Platform. If `rocq` is not on your `PATH` (for example with the Rocq Platform app
+release installs and the toolchain everything here was verified on; the B5, A2,
+A4 and B2 files additionally need MathComp-Analysis and Algebra-Tactics, also
+part of the Platform. If `rocq` is not on your `PATH` (for example with the Rocq Platform app
 on macOS), point the shell at it first:
 
 ```sh
@@ -182,14 +198,14 @@ to it, and no line starting with `Error` means it checked):
 rocq compile -R . "" putnam_1962_a5.v
 ```
 
-**Compile all files at once**, in dependency order (the audits load the compiled
-proofs, and `putnam_1962_b5_statement_is_false.v` loads the compiled upstream
-statement, so the order below matters; the loop stops at the first failure and
-prints `OK <name>` after each success):
+**Compile all files at once**, in dependency order
+(`putnam_1962_b5_statement_is_false.v` and `putnam_1962_a2_statement_is_false.v`
+load the compiled upstream statements, so the order below matters; the loop stops
+at the first failure and prints `OK <name>` after each success):
 
 ```sh
 for f in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof \
-         audit_1962_a5 audit_1963_a2 \
+         putnam_1962_b2 putnam_1962_a4 \
          putnam_1962_b5 putnam_1962_b5_statement_is_false putnam_1962_b5_corrected \
          putnam_1962_a6 putnam_1962_a6_corrected putnam_1962_a6_statement_is_vacuous \
          putnam_1962_a2 putnam_1962_a2_statement_is_false putnam_1962_a2_corrected; do
@@ -204,10 +220,12 @@ Both commands print the library warnings described above; they are expected.
 With Rocq and MathComp installed, in a clone of this repository:
 
 ```sh
-# 1. compile the three proofs
+# 1. compile the five proofs
 rocq compile putnam_1962_a5.v
 rocq compile putnam_1963_a2.v
 rocq compile putnam_1962_b5_corrected_proof.v      # needs mathcomp-analysis / algebra-tactics
+rocq compile putnam_1962_b2.v                      # needs mathcomp-analysis (mathcomp.reals)
+rocq compile putnam_1962_a4.v                      # needs mathcomp-analysis / algebra-tactics
 
 # 2. print their assumptions
 printf 'Require putnam_1962_a5.\nPrint Assumptions putnam_1962_a5.putnam_1962_a5.\n' > pa1.v
@@ -216,17 +234,19 @@ printf 'Require putnam_1962_b5_corrected_proof.\nPrint Assumptions putnam_1962_b
 rocq compile -R . "" pa1.v      # expect: Closed under the global context
 rocq compile -R . "" pa2.v      # expect: Closed under the global context
 rocq compile -R . "" pa3.v      # expect: only R and the classical axioms of mathcomp.reals
+printf 'Require putnam_1962_b2.\nPrint Assumptions putnam_1962_b2.putnam_1962_b2.\n' > pa4.v
+printf 'Require putnam_1962_a4.\nPrint Assumptions putnam_1962_a4.putnam_1962_a4.\n' > pa5.v
+rocq compile -R . "" pa4.v      # expect: only R and the classical axioms of mathcomp.reals
+rocq compile -R . "" pa5.v      # expect: only R and the classical axioms of mathcomp.reals
 
 # 3. independent kernel check (slow: it re-checks MathComp too)
 rocqchk -R . "" putnam_1962_a5
 rocqchk -R . "" putnam_1963_a2
 rocqchk -R . "" putnam_1962_b5_corrected_proof
+rocqchk -R . "" putnam_1962_b2
+rocqchk -R . "" putnam_1962_a4
 
-# 4. audits (need the .vo files from step 1)
-rocq compile -R . "" audit_1962_a5.v
-rocq compile -R . "" audit_1963_a2.v      # prints "Closed under the global context" four times
-
-# 5. the bug-report evidence
+# 4. the bug-report evidence
 rocq compile putnam_1962_b5.v                               # upstream statement (ends in Admitted); just compiles
 rocq compile -R . "" putnam_1962_b5_statement_is_false.v    # assumptions list the admitted putnam_1962_b5: False follows from it
 rocq compile putnam_1962_a6_statement_is_vacuous.v          # expect: Closed under the global context
