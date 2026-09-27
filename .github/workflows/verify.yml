@@ -15,9 +15,9 @@ jobs:
             startGroup "Workaround permission issue"
               sudo chown -R 1000:1000 .
             endGroup
-            startGroup "Install MathComp-Analysis 1.16, zify and Algebra-Tactics"
+            startGroup "Install MathComp-Analysis 1.16, zify, Algebra-Tactics and Coquelicot 3.4.4"
               opam update -y
-              opam install -y -j 4 coq-mathcomp-analysis.1.16.0 coq-mathcomp-zify coq-mathcomp-algebra-tactics
+              opam install -y -j 4 coq-mathcomp-analysis.1.16.0 coq-mathcomp-zify coq-mathcomp-algebra-tactics coq-coquelicot.3.4.4
             endGroup
             startGroup "Verify"
               bash ci/verify.sh
