@@ -12,6 +12,10 @@
 #   4. statement integrity: diff every statement against the upstream
 #      PutnamBench files at the pinned commit, ignoring only the header comments
 #      and the marked compat lines
+# When every check passes, the script removes everything it produced (.vo, .vok,
+# .vos, .glob, .*.aux, .lia.cache, .nia.cache, *.log, ci_pa_*, ci_chk_*,
+# ci_upstream/), leaving the folder exactly as it found it. When a check fails,
+# all of it is kept so the .log files can be inspected.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 COMMIT=4dbe26ef21563af851eedaeb82d936fe1f94fc52
@@ -76,7 +80,7 @@ for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962
   curl -sSfL -o "ci_upstream/$p.v" "$UP/$p.v" || { bad "could not download upstream $p.v"; }
 done
 strip() { awk 'BEGIN{h=1} h&&/^   =+ \*\)$/{h=0; getline; next} h{next} !/compat:/{print}' "$1"; }
-up()    { sed -e '$a\' "ci_upstream/$1.v"; }          # upstream, with a final newline
+up()    { awk '{print}' "ci_upstream/$1.v"; }           # upstream, with a final newline (awk adds one if missing; portable to macOS)
 thm()   { sed -n '/^Theorem/,/^Proof/p' | sed '$d'; }  # the Theorem block
 nchanged() { diff "$1" "$2" | grep -c '^[<>]' || true; }
 # A5: preamble + Definition + Theorem block identical
@@ -102,5 +106,14 @@ if diff <(up putnam_1962_a2 | nosol) <(strip putnam_1962_a2_corrected.v | nosol)
 then ok "putnam_1962_a2_corrected.v: differs from upstream only in the solution-set definition"; else bad "putnam_1962_a2_corrected.v differs from upstream outside the solution set"; fi
 
 echo
-if [ "$fail" = "0" ]; then echo "ALL CHECKS PASSED"; else echo "SOME CHECKS FAILED"; fi
+if [ "$fail" = "0" ]; then
+  echo "ALL CHECKS PASSED"
+  # leave the folder as it was: remove everything this script produced
+  for f in $FILES; do rm -f "$f.vo" "$f.vok" "$f.vos" "$f.glob" "$f.log" ".$f.aux"; done
+  rm -f ci_pa_* ci_chk_* .lia.cache .nia.cache
+  rm -rf ci_upstream
+  echo "(build products and logs removed; the folder is as it was before the run)"
+else
+  echo "SOME CHECKS FAILED (build products and .log files kept for inspection)"
+fi
 exit $fail
