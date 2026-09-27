@@ -1,5 +1,7 @@
 # Rocq proofs for PutnamBench: 1962 A5, 1963 A2, 1962 B5 — plus three defective statements
 
+[![verify](https://github.com/yaqub1971/PutnamBench_ROCQ/actions/workflows/verify.yml/badge.svg)](https://github.com/yaqub1971/PutnamBench_ROCQ/actions/workflows/verify.yml)
+
 This repository contains machine-checked Rocq/MathComp proofs of three
 [PutnamBench](https://github.com/trishullab/PutnamBench) problems, the sanity
 checks ("audits") used to make sure the proofs prove the intended statements, and
@@ -8,8 +10,7 @@ a report on three PutnamBench Rocq statements that turned out to be defective.
 The proofs were produced by an LLM (Claude Fable 5.1, Anthropic) working in Rocq/MathComp,
 with me directing the work and running the checks. The purpose of the exercise is
 to see how far current language models can get at *formalizing and proving in
-Rocq specifically*, which is the least-exercised track of the benchmark (see the
-note at the end).
+Rocq specifically*, which is the least-exercised track of the benchmark.
 
 ## What is in this repository
 
@@ -20,6 +21,7 @@ note at the end).
 | `putnam_1962_b5_corrected_proof.v` | Proof of 1962 B5 **against a corrected statement**. The upstream Rocq statement is false as written (see below), so it cannot be proved; this file proves the statement with the one-token fix applied. Apart from that fix and the two marked compatibility lines described below, the statement is the upstream text. Its proof follows the structure of a Lean proof of the same problem. |
 | `audit_1962_a5.v`, `audit_1963_a2.v` | Independent sanity checks on the two unmodified statements: the A5 identity is evaluated numerically at n = 2…7 and the side condition n ≥ 2 is shown to be necessary; for A2 the hypotheses are shown to be satisfiable and each of them necessary, and the audited statement is derived from the compiled benchmark theorem. |
 | `ISSUE_REPORT_rocq.md` | Report on the three defective upstream statements (1962 B5, A6, A2), written for the PutnamBench issue tracker. |
+| `ci/verify.sh`, `.github/workflows/verify.yml` | The verification script and the GitHub Actions workflow that runs it on every push (see "Continuous verification" below). |
 | `COVERAGE.md` | Problem-by-problem comparison with the twelve Lean solutions Humanfia published as a public preview: which of them have Rocq statements at all, and what this repository did with each. |
 | `putnam_1962_b5.v`, `putnam_1962_a6.v`, `putnam_1962_a2.v` | Copies of the upstream statements at the commit named in the report, kept as evidence. `putnam_1962_a6.v` is verbatim. The B5 and A2 copies are verbatim except for clearly marked `(* compat: ... *)` lines (see "Rocq 9.1 / MathComp 2.5 compatibility" below), without which the upstream files do not compile on current Rocq at all. |
 | `putnam_1962_b5_statement_is_false.v` | Derives `False` from the upstream B5 statement at n = 2 (it asserts 5/3 < 5/4). |
@@ -145,6 +147,21 @@ falsity derivations closing as described above (each `False` derivation lists, a
 its only assumptions, the admitted upstream theorem, `R`, and the classical axioms
 of `mathcomp.reals`).
 
+## Continuous verification
+
+The badge at the top of this page reports the latest run of
+`.github/workflows/verify.yml`. On every push, GitHub Actions starts a fresh
+container from the `mathcomp/mathcomp:2.5.0-rocq-prover-9.1` image (Rocq 9.1.0 and
+MathComp 2.5, the same versions as the Rocq Platform 2026.07), installs
+MathComp-Analysis 1.16.0, zify and Algebra-Tactics, and runs `ci/verify.sh`, which
+performs the four checks described above on all fourteen files: it compiles them
+in dependency order and fails on any warning from a file's own lines, checks the
+`Print Assumptions` output of every proof and refutation, runs `rocqchk` on the
+three proofs, and downloads the upstream PutnamBench files at the pinned commit to
+confirm that every statement here is byte-identical to upstream apart from the
+documented changes. The run's log is public. The same script can be run locally
+with `bash ci/verify.sh` from a clone of the repository.
+
 ## Compiling the files
 
 You need **Rocq 9.1 with MathComp 2.5**, which is what the Rocq Platform 2026.07
@@ -227,33 +244,3 @@ from these files, and nothing needs to be done about them (see "About the
 warnings" above). The `.vo`, `.vok`, `.vos`, `.glob`, `.*.aux` and `.lia.cache` /
 `.nia.cache` files these commands create are build products and are not part of
 the repository.
-
-## A note on the PutnamBench maintainers' request
-
-The PutnamBench README asks that proofs of benchmark problems not be posted
-publicly, to limit contamination of the benchmark. I take that request seriously,
-and I want to explain, respectfully, why this repository nonetheless contains full
-proofs.
-
-As of September 2026 the benchmark is effectively saturated in Lean, where several
-systems report 672/672, and in Isabelle, where 640/640 has been reported
-(see the [leaderboard](https://trishullab.github.io/PutnamBench/leaderboard.html)).
-Complete solution sets therefore already exist, some with public previews, and the
-informal solutions to every Putnam problem have been public for decades. The Rocq
-track, by contrast, has stood at 1 of 412 problems since the July 2024 baselines
-and has received no submissions since.
-
-This repository is not a leaderboard submission. It is a small study of what a
-current LLM can do when asked to *formalize and prove in Rocq/MathComp*, and of
-how reliable the Rocq statements are (three of the first eight examined were
-defective). For that purpose the proofs themselves are the object of study —
-their structure, their use of MathComp idioms, and the checks they pass — and
-keeping them private would defeat it. I believe that publishing a handful of Rocq
-proofs at this stage adds no meaningful contamination risk beyond what the
-existing Lean and Isabelle solution sets already represent, while it may help the
-Rocq track get some of the attention the other two have had.
-
-If the maintainers see this differently, I will gladly move the proofs to a
-private repository or take them down. The two statement defects have been
-reported upstream so that they can be fixed for everyone, independently of what
-happens to the proofs.
