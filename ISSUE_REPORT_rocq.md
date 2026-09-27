@@ -33,10 +33,9 @@ already introduces (propositional/functional extensionality, indefinite descript
 
 Fix (one token): replace `3 * (n%:R + 1) + 1` by `3 * n%:R + 1`. The attached
 `putnam_1962_b5_corrected.v` is the file with only that change. The corrected
-statement is provable: I have a compiled, axiom-free (beyond the classical axioms of
-`mathcomp.reals`) proof of exactly the corrected file, checked under Coq 8.18.0 /
-MathComp 2.1.0 / MathComp-Analysis 1.0.0, and can share it with the maintainers
-privately, following the leaderboard's request not to post proofs publicly.
+statement is provable: the attached `putnam_1962_b5_corrected_proof.v` is a compiled,
+axiom-free (beyond the classical axioms of `mathcomp.reals`) proof of exactly the
+corrected file, checked under both environments listed at the top.
 
 ## 2. putnam_1962_a6.v: the hypotheses are contradictory (theorem vacuously true)
 
@@ -59,9 +58,12 @@ r ∈ A, −r ∈ A, r = 0 holds". Two things go wrong.
 
 Fix: the attached `putnam_1962_a6_corrected.v` makes both changes
 (`\/` → `/\` in the second conjunct, and `r = 0` → `r == 0` throughout).
-With these, the hypotheses are satisfied by the positive rationals, and
-Qeq-compatibility of `A` follows from the hypotheses, so no further hypothesis is
-needed for the conclusion `A = (fun r : Q => r > 0)`.
+With these, the hypotheses are satisfied by the positive rationals, and no further
+hypothesis is needed for the conclusion `A = (fun r : Q => r > 0)`: the corrected
+statement is proved in the attached `putnam_1962_a6_corrected_proof.v` (its only
+axiom is the standard library's `Extensionality_Ensembles`, which the conclusion's
+equality of `Ensemble`s requires; the proof works directly on Coq's concrete
+fractions, since the statement quantifies `A` over all of them).
 
 ## 3. putnam_1962_a2.v: the solution set is incomplete, so the theorem is false
 
@@ -101,9 +103,19 @@ The Lean statement of this problem already has the answer these examples require
 (the second case is needed because a non-integrable f has integral 0 in both Lean's
 Bochner integral and Rocq's `Rintegral`, so the truncation of a / (1 - c x)^2 past x = 1/c
 also satisfies P). Fix: the attached `putnam_1962_a2_corrected.v` transcribes this
-four-case solution set to Rocq; the rest of the file is unchanged. I have not attempted
-a proof of the corrected statement. The Isabelle file uses the same one-case answer as
-the Rocq file and appears to have the same problem.
+four-case solution set to Rocq; the rest of the file is unchanged. The corrected
+statement is proved in the attached `putnam_1962_a2_corrected_proof.v` (its
+`Definition` of the solution set and its `Theorem` block are byte-identical to the
+corrected file; `Print Assumptions` lists only the `realType` variable and the classical
+axioms of `mathcomp.reals`; `rocqchk` passes; checked on the Rocq 9.1 / MathComp-Analysis
+1.16.0 environment only, since it uses the fundamental theorem of calculus, which
+MathComp-Analysis 1.0.0 does not have), which confirms that the transcribed
+solution set is exactly right for the Rocq reading of the integral: the proof shows
+that every solution agrees with a member of the set at every x > 0 of its domain
+(and on [0, e) in the bounded case), and that every member satisfies P on (0, +oo) or
+on some (0, e) — for the truncated family P is established on (0, 1/c), which is all
+the statement asks. The Isabelle file uses the
+same one-case answer as the Rocq file and appears to have the same problem.
 
 ## 4. The files do not compile at all on Rocq 9.1 / MathComp 2.5
 
@@ -158,19 +170,23 @@ be compiled on both toolchains; apart from those marked lines, `putnam_1962_b5.v
 from its original in exactly one line of the statement, and `putnam_1962_a2_corrected.v`
 only in the definition of the solution set (each file also starts with an explanatory
 header comment). The proofs of 1962 B2 and 1962 A4 in the same repository carry the
-`Set Warnings` line of (a), and the A4 proof also the `Local Open Scope` line of (c).
+`Set Warnings` line of (a), the A4 proof also the `Local Open Scope` line of (c), and
+the A2 proof the same lines as the A2 statement files.
 
 ## Files attached
 
 - putnam_1962_b5.v                      – current upstream statement (verbatim apart from the marked compat lines, see section 4)
 - putnam_1962_b5_statement_is_false.v   – derives False from it (compile with -R . "")
 - putnam_1962_b5_corrected.v            – proposed fix for the bound (one line differs from putnam_1962_b5.v)
+- putnam_1962_b5_corrected_proof.v      – proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
 - putnam_1962_a6.v                      – current upstream statement (verbatim)
 - putnam_1962_a6_statement_is_vacuous.v – one-line vacuous proof of it
 - putnam_1962_a6_corrected.v            – proposed fix
+- putnam_1962_a6_corrected_proof.v      – proof of the proposed fix (only axiom: Extensionality_Ensembles)
 - putnam_1962_a2.v                      – current upstream statement (verbatim apart from the marked compat lines, see section 4)
 - putnam_1962_a2_statement_is_false.v   – derives False from it (compile with -R . "")
 - putnam_1962_a2_corrected.v            – proposed fix: the Lean solution set, transcribed
+- putnam_1962_a2_corrected_proof.v      – proof of the proposed fix (assumptions: R and the classical axioms of mathcomp.reals)
 
 ## A broader note
 

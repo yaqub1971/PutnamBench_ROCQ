@@ -6,6 +6,7 @@
    equality on non-canonical Q fractions) becomes "r == 0" (Qeq). With these changes
    the hypotheses are satisfied by the positive rationals, so the theorem is no longer
    vacuous, and no further hypothesis is needed for the conclusion.
+   Proved in putnam_1962_a6_corrected_proof.v.
    Verified: compiles on Rocq 9.1.0 and on Coq 8.18.0.
    About the warnings: the file is written for Coq 8.x. Rocq 9.1 warns "Loading Stdlib
    without prefix is deprecated" on the Require line and would prefer

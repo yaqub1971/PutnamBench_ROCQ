@@ -1,6 +1,6 @@
 (* ============================================================================
    PutnamBench 1962 A2 -- PROPOSED FIX of the upstream statement. Ends in Admitted
-   (it is a statement, not a proof; no proof of it is claimed in this repository).
+   (it is a statement, not a proof). Proved in putnam_1962_a2_corrected_proof.v.
    Apart from this header comment and the marked compat lines, differs from
    putnam_1962_a2.v (the upstream statement) only in the definition of
    putnam_1962_a2_solution: the one-case answer a / (1 - c x)^2 is replaced by the
