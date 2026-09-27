@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 # Full verification of this repository. Run from anywhere: bash ci/verify.sh
-# Needs Rocq 9.1 (or Coq 8.18+) with MathComp, MathComp-Analysis, zify and
-# Algebra-Tactics; curl for the upstream comparison in step 4.
-#   1. compile all 16 .v files in dependency order (fails on any error, and
+# Needs Rocq 9.1 with MathComp, MathComp-Analysis, zify, Algebra-Tactics and
+# Coquelicot; curl for the upstream comparison in step 4.
+#   1. compile all 17 .v files in dependency order (fails on any error, and
 #      reports any warning that comes from a file's own lines rather than the
 #      library imports)
 #   2. Print Assumptions: A5 and 1963 A2 closed; B5, B2, A4 and the corrected A2
 #      only R + the classical axioms of mathcomp.reals; the corrected A6 only the
-#      standard library's Extensionality_Ensembles; the three False/vacuity
-#      derivations assume exactly the admitted upstream theorem (or nothing)
-#   3. independent kernel check (rocqchk / coqchk) of the seven proofs
+#      standard library's Extensionality_Ensembles; B6 only the axioms behind the
+#      standard library's reals and Rolle's theorem plus the classical axioms of
+#      mathcomp.classical; the three False/vacuity derivations assume exactly the
+#      admitted upstream theorem (or nothing)
+#   3. independent kernel check (rocqchk / coqchk) of the eight proofs
 #   4. statement integrity: diff every statement against the upstream
 #      PutnamBench files at the pinned commit, ignoring only the header comments
-#      and the marked compat lines
+#      and the marked compat lines; for B6 the upstream file is also compiled and
+#      the kernel checks that the proved theorem has exactly its type
 # When every check passes, the script removes everything it produced (.vo, .vok,
 # .vos, .glob, .*.aux, .lia.cache, .nia.cache, .lra.cache, .nra.cache, *.log,
-# ci_pa_*, ci_chk_*, ci_upstream/), leaving the folder exactly as it found it. When a check fails,
-# all of it is kept so the .log files can be inspected.
+# ci_pa_*, ci_chk_*, ci_up_b6.*, ci_same_b6.*, ci_upstream/), leaving the folder exactly as it
+# found it. When a check fails, all of it is kept so the .log files can be inspected.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 COMMIT=4dbe26ef21563af851eedaeb82d936fe1f94fc52
@@ -30,7 +33,7 @@ step() { echo; echo "### $*"; }
 ok()   { echo "OK   $*"; }
 bad()  { echo "FAIL $*"; fail=1; }
 
-PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof putnam_1962_b2 putnam_1962_a4 putnam_1962_a6_corrected_proof putnam_1962_a2_corrected_proof"
+PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof putnam_1962_b2 putnam_1962_a4 putnam_1962_a6_corrected_proof putnam_1962_a2_corrected_proof putnam_1962_b6"
 FILES="$PROOFS \
  putnam_1962_b5 putnam_1962_b5_statement_is_false putnam_1962_b5_corrected \
  putnam_1962_a6 putnam_1962_a6_corrected putnam_1962_a6_statement_is_vacuous \
@@ -50,7 +53,7 @@ for f in $FILES; do
   fi
 done
 
-# the seven proof files add no axiom, notation or tactic definition and contain no Admitted/admit
+# the eight proof files add no axiom, notation or tactic definition and contain no Admitted/admit
 for f in $PROOFS; do
   pat='^ *(Local |Global )?(Notation|Reserved Notation|Infix|Ltac|Axiom|Axioms|Parameter|Parameters) |Admitted\.|(^|[^A-Za-z_])admit([^A-Za-z_]|$)'
   if grep -nE "$pat" "$f.v" >/dev/null
@@ -87,6 +90,15 @@ pa a6p putnam_1962_a6_corrected_proof putnam_1962_a6 && {
   if [ "$(grep -c '' ci_pa_a6p.names)" = "1" ] && grep -qxE '([A-Za-z0-9_]+\.)*Extensionality_Ensembles' ci_pa_a6p.names
   then ok "putnam_1962_a6 (corrected): only the standard library's Extensionality_Ensembles"
   else bad "putnam_1962_a6 (corrected) has unexpected assumptions: $(tr '\n' ' ' < ci_pa_a6p.names)"; fi; }
+# B6: the axioms the standard library's real numbers are built on (ClassicalDedekindReals.sig_not_dec,
+# sig_forall_dec, FunctionalExtensionality.functional_extensionality_dep), Classical_Prop.classic
+# (used by the standard library's Rolle), and the three classical axioms of mathcomp.classical
+# (boolp), and nothing else -- in particular nothing declared by the proof file itself
+pa b6 putnam_1962_b6 putnam_1962_b6 && {
+  unexpected=$(grep -vxE '([A-Za-z0-9_]+\.)*ClassicalDedekindReals\.sig_not_dec|([A-Za-z0-9_]+\.)*ClassicalDedekindReals\.sig_forall_dec|([A-Za-z0-9_]+\.)*FunctionalExtensionality\.functional_extensionality_dep|([A-Za-z0-9_]+\.)*Classical_Prop\.classic|boolp\.propositional_extensionality|boolp\.functional_extensionality_dep|boolp\.constructive_indefinite_description' ci_pa_b6.names || true)
+  if [ -z "$unexpected" ] && grep -q '^boolp\.' ci_pa_b6.names && grep -q 'ClassicalDedekindReals' ci_pa_b6.names
+  then ok "putnam_1962_b6: only the axioms behind the standard library's reals and Rolle's theorem, and the classical axioms of mathcomp.classical: $(tr '\n' ' ' < ci_pa_b6.names)"
+  else bad "putnam_1962_b6 has unexpected assumptions: $unexpected"; fi; }
 
 step "3. independent kernel check"
 for f in $PROOFS; do
@@ -96,7 +108,7 @@ done
 
 step "4. statement integrity against upstream PutnamBench commit ${COMMIT:0:7}"
 mkdir -p ci_upstream
-for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962_a2 putnam_1962_b2 putnam_1962_a4; do
+for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962_a2 putnam_1962_b2 putnam_1962_a4 putnam_1962_b6; do
   curl -sSfL -o "ci_upstream/$p.v" "$UP/$p.v" || { bad "could not download upstream $p.v"; }
 done
 strip() { awk 'BEGIN{h=1} h&&/^   =+ \*\)$/{h=0; getline; next} h{next} !/^(Set Warnings "[^"]*"\.|From mathcomp Require Import ssralg\.|Local Open Scope classical_set_scope\.) \(\* compat: /{print}' "$1"; }  # drops the header and exactly the three kinds of marked compat lines
@@ -143,13 +155,24 @@ if diff <(strip putnam_1962_a2_corrected.v | sed -n '1,10p') <(strip putnam_1962
    && [ -z "$extra" ]
 then ok "putnam_1962_a2_corrected_proof.v proves exactly the statement of putnam_1962_a2_corrected.v (preamble, Definition and Theorem identical; only the proof's imports added)"
 else bad "corrected A2 statement and proof file disagree${extra:+ (unexpected lines before the Variable: $extra)}"; fi
+# B6: preamble (the upstream file's first four lines: the Require Import line, the coercion and the blank
+# lines around them) and Theorem block identical; then the upstream file itself is compiled (its theorem
+# is Admitted) and the kernel checks that the theorem proved here has exactly the type of the upstream one
+if diff <(up putnam_1962_b6 | sed -n '1,4p') <(strip putnam_1962_b6.v | sed -n '1,4p') >/dev/null \
+   && diff <(up putnam_1962_b6 | thm) <(strip putnam_1962_b6.v | thm) >/dev/null
+then ok "putnam_1962_b6.v: preamble and Theorem identical to upstream"; else bad "putnam_1962_b6.v differs from upstream in its statement"; fi
+cp ci_upstream/putnam_1962_b6.v ci_up_b6.v
+printf 'Require ci_up_b6 putnam_1962_b6.\nDefinition ci_same_statement : ltac:(let T := type of ci_up_b6.putnam_1962_b6 in exact T) := putnam_1962_b6.putnam_1962_b6.\n' > ci_same_b6.v
+if $COMPILE -R . "" ci_up_b6.v > ci_up_b6.log 2>&1 && $COMPILE -R . "" ci_same_b6.v > ci_same_b6.log 2>&1
+then ok "putnam_1962_b6: the kernel accepts the proved theorem at the type of the upstream admitted theorem (compiled from the upstream file itself)"
+else bad "putnam_1962_b6: the proved theorem does not have the type of the upstream theorem:"; grep -A8 "^Error" ci_up_b6.log ci_same_b6.log | head -20; fi
 
 echo
 if [ "$fail" = "0" ]; then
   echo "ALL CHECKS PASSED"
   # leave the folder as it was: remove everything this script produced
   for f in $FILES; do rm -f "$f.vo" "$f.vok" "$f.vos" "$f.glob" "$f.log" ".$f.aux"; done
-  rm -f ci_pa_* .ci_pa_*.aux ci_chk_* .lia.cache .nia.cache .lra.cache .nra.cache
+  rm -f ci_pa_* .ci_pa_*.aux ci_chk_* ci_up_b6.* .ci_up_b6.aux ci_same_b6.* .ci_same_b6.aux .lia.cache .nia.cache .lra.cache .nra.cache
   rm -rf ci_upstream
   echo "(build products and logs removed; the folder is as it was before the run)"
 else
