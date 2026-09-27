@@ -110,7 +110,7 @@ if [ "$fail" = "0" ]; then
   echo "ALL CHECKS PASSED"
   # leave the folder as it was: remove everything this script produced
   for f in $FILES; do rm -f "$f.vo" "$f.vok" "$f.vos" "$f.glob" "$f.log" ".$f.aux"; done
-  rm -f ci_pa_* ci_chk_* .lia.cache .nia.cache
+  rm -f ci_pa_* .ci_pa_*.aux ci_chk_* .lia.cache .nia.cache
   rm -rf ci_upstream
   echo "(build products and logs removed; the folder is as it was before the run)"
 else
