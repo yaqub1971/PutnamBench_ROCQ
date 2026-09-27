@@ -2,19 +2,20 @@
 # Full verification of this repository. Run from anywhere: bash ci/verify.sh
 # Needs Rocq 9.1 (or Coq 8.18+) with MathComp, MathComp-Analysis, zify and
 # Algebra-Tactics; curl for the upstream comparison in step 4.
-#   1. compile all 14 .v files in dependency order (fails on any error, and
+#   1. compile all 16 .v files in dependency order (fails on any error, and
 #      reports any warning that comes from a file's own lines rather than the
 #      library imports)
-#   2. Print Assumptions: A5 and 1963 A2 closed; B5, B2 and A4 only R + the
-#      classical axioms of mathcomp.reals; the three False/vacuity derivations
-#      assume exactly the admitted upstream theorem (or nothing)
-#   3. independent kernel check (rocqchk / coqchk) of the five proofs
+#   2. Print Assumptions: A5 and 1963 A2 closed; B5, B2, A4 and the corrected A2
+#      only R + the classical axioms of mathcomp.reals; the corrected A6 only the
+#      standard library's Extensionality_Ensembles; the three False/vacuity
+#      derivations assume exactly the admitted upstream theorem (or nothing)
+#   3. independent kernel check (rocqchk / coqchk) of the seven proofs
 #   4. statement integrity: diff every statement against the upstream
 #      PutnamBench files at the pinned commit, ignoring only the header comments
 #      and the marked compat lines
 # When every check passes, the script removes everything it produced (.vo, .vok,
-# .vos, .glob, .*.aux, .lia.cache, .nia.cache, *.log, ci_pa_*, ci_chk_*,
-# ci_upstream/), leaving the folder exactly as it found it. When a check fails,
+# .vos, .glob, .*.aux, .lia.cache, .nia.cache, .lra.cache, .nra.cache, *.log,
+# ci_pa_*, ci_chk_*, ci_upstream/), leaving the folder exactly as it found it. When a check fails,
 # all of it is kept so the .log files can be inspected.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -29,7 +30,7 @@ step() { echo; echo "### $*"; }
 ok()   { echo "OK   $*"; }
 bad()  { echo "FAIL $*"; fail=1; }
 
-PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof putnam_1962_b2 putnam_1962_a4"
+PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof putnam_1962_b2 putnam_1962_a4 putnam_1962_a6_corrected_proof putnam_1962_a2_corrected_proof"
 FILES="$PROOFS \
  putnam_1962_b5 putnam_1962_b5_statement_is_false putnam_1962_b5_corrected \
  putnam_1962_a6 putnam_1962_a6_corrected putnam_1962_a6_statement_is_vacuous \
@@ -49,6 +50,14 @@ for f in $FILES; do
   fi
 done
 
+# the seven proof files add no axiom, notation or tactic definition and contain no Admitted/admit
+for f in $PROOFS; do
+  pat='^ *(Local |Global )?(Notation|Reserved Notation|Infix|Ltac|Axiom|Axioms|Parameter|Parameters) |Admitted\.|(^|[^A-Za-z_])admit([^A-Za-z_]|$)'
+  if grep -nE "$pat" "$f.v" >/dev/null
+  then bad "$f.v declares a notation, tactic or axiom, or contains admit/Admitted:"; grep -nE "$pat" "$f.v"
+  else ok "$f.v: no notation, tactic or axiom declarations, no admit/Admitted"; fi
+done
+
 step "2. Print Assumptions"
 pa() { # name  module  theorem
   printf 'Require %s.\nPrint Assumptions %s.%s.\n' "$2" "$2" "$3" > "ci_pa_$1.v"
@@ -61,18 +70,23 @@ pa a2 putnam_1963_a2 putnam_1963_a2 && { grep -q "Closed under the global contex
 # R + the three classical axioms of mathcomp.reals, and nothing else
 classical_only() { # tag  module  theorem  label
   pa "$1" "$2" "$3" && {
-    unexpected=$(grep -vE '^boolp\.|(^|\.)R$' "ci_pa_$1.names" || true)
+    unexpected=$(grep -vE "^boolp\.|^$2\.R\$" "ci_pa_$1.names" || true)
     if [ -z "$unexpected" ] && grep -q '^boolp\.' "ci_pa_$1.names"; then ok "$4: only R and the classical axioms of mathcomp.reals: $(tr '\n' ' ' < "ci_pa_$1.names")"
     else bad "$4 has unexpected assumptions: $unexpected"; fi; }
 }
 classical_only b5 putnam_1962_b5_corrected_proof putnam_1962_b5 "putnam_1962_b5 (corrected)"
 classical_only b2 putnam_1962_b2 putnam_1962_b2 "putnam_1962_b2"
 classical_only a4 putnam_1962_a4 putnam_1962_a4 "putnam_1962_a4"
+classical_only a2p putnam_1962_a2_corrected_proof putnam_1962_a2 "putnam_1962_a2 (corrected)"
 pa b5f putnam_1962_b5_statement_is_false putnam_1962_b5_rocq_statement_is_false && {
   grep -qxE '(putnam_1962_b5\.)?putnam_1962_b5' ci_pa_b5f.names && ok "B5 refutation assumes exactly the admitted upstream putnam_1962_b5 (plus R and classical axioms)" || bad "B5 refutation: expected the admitted putnam_1962_b5 among the assumptions: $(tr '\n' ' ' < ci_pa_b5f.names)"; }
 pa a2f putnam_1962_a2_statement_is_false putnam_1962_a2_rocq_statement_is_false && {
   grep -qxE '(putnam_1962_a2\.)?putnam_1962_a2' ci_pa_a2f.names && ok "A2 refutation assumes exactly the admitted upstream putnam_1962_a2 (plus R and classical axioms)" || bad "A2 refutation: expected the admitted putnam_1962_a2 among the assumptions: $(tr '\n' ' ' < ci_pa_a2f.names)"; }
 pa a6v putnam_1962_a6_statement_is_vacuous putnam_1962_a6 && { grep -q "Closed under the global context" ci_pa_a6v.log && ok "A6 vacuity proof: closed under the global context" || bad "A6 vacuity proof has assumptions: $(tr '\n' ' ' < ci_pa_a6v.names)"; }
+pa a6p putnam_1962_a6_corrected_proof putnam_1962_a6 && {
+  if [ "$(grep -c '' ci_pa_a6p.names)" = "1" ] && grep -qxE '([A-Za-z0-9_]+\.)*Extensionality_Ensembles' ci_pa_a6p.names
+  then ok "putnam_1962_a6 (corrected): only the standard library's Extensionality_Ensembles"
+  else bad "putnam_1962_a6 (corrected) has unexpected assumptions: $(tr '\n' ' ' < ci_pa_a6p.names)"; fi; }
 
 step "3. independent kernel check"
 for f in $PROOFS; do
@@ -85,7 +99,7 @@ mkdir -p ci_upstream
 for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962_a2 putnam_1962_b2 putnam_1962_a4; do
   curl -sSfL -o "ci_upstream/$p.v" "$UP/$p.v" || { bad "could not download upstream $p.v"; }
 done
-strip() { awk 'BEGIN{h=1} h&&/^   =+ \*\)$/{h=0; getline; next} h{next} !/compat:/{print}' "$1"; }
+strip() { awk 'BEGIN{h=1} h&&/^   =+ \*\)$/{h=0; getline; next} h{next} !/^(Set Warnings "[^"]*"\.|From mathcomp Require Import ssralg\.|Local Open Scope classical_set_scope\.) \(\* compat: /{print}' "$1"; }  # drops the header and exactly the three kinds of marked compat lines
 up()    { awk '{print}' "ci_upstream/$1.v"; }           # upstream, with a final newline (awk adds one if missing; portable to macOS)
 thm()   { sed -n '/^Theorem/,/^Proof/p' | sed '$d'; }  # the Theorem block
 nchanged() { diff "$1" "$2" | grep -c '^[<>]' || true; }
@@ -105,6 +119,7 @@ diff <(strip putnam_1962_b5_corrected.v | thm) <(strip putnam_1962_b5_corrected_
 diff <(up putnam_1962_a6) <(strip putnam_1962_a6.v) >/dev/null && ok "putnam_1962_a6.v: identical to upstream" || bad "putnam_1962_a6.v differs from upstream"
 diff <(up putnam_1962_a6 | thm) <(strip putnam_1962_a6_statement_is_vacuous.v | thm) >/dev/null && ok "putnam_1962_a6_statement_is_vacuous.v: Theorem identical to upstream" || bad "A6 vacuity file: Theorem differs from upstream"
 n=$(nchanged <(up putnam_1962_a6) <(strip putnam_1962_a6_corrected.v)); [ "$n" = "2" ] && ok "putnam_1962_a6_corrected.v: exactly one line differs from upstream (hSScond)" || bad "putnam_1962_a6_corrected.v: $n changed lines vs upstream (expected 2)"
+diff <(strip putnam_1962_a6_corrected.v | thm) <(strip putnam_1962_a6_corrected_proof.v | thm) >/dev/null && ok "putnam_1962_a6_corrected_proof.v proves exactly the statement of putnam_1962_a6_corrected.v" || bad "corrected A6 statement and proof file disagree"
 # B2 and A4: preamble (everything before the Variable) and Theorem block identical
 if diff <(up putnam_1962_b2 | sed -n '1,10p') <(strip putnam_1962_b2.v | sed -n '1,10p') >/dev/null \
    && diff <(up putnam_1962_b2 | thm) <(strip putnam_1962_b2.v | thm) >/dev/null
@@ -117,13 +132,24 @@ diff <(up putnam_1962_a2) <(strip putnam_1962_a2.v) >/dev/null && ok "putnam_196
 nosol() { awk '/^\(\* Proposed fix:|^Definition putnam_1962_a2_solution/{skip=1} /^Theorem/{skip=0} !skip{print}'; }
 if diff <(up putnam_1962_a2 | nosol) <(strip putnam_1962_a2_corrected.v | nosol) >/dev/null
 then ok "putnam_1962_a2_corrected.v: differs from upstream only in the solution-set definition"; else bad "putnam_1962_a2_corrected.v differs from upstream outside the solution set"; fi
+# corrected A2 proof: the statement's preamble (its first 10 lines), everything from the Variable
+# through the solution-set Definition, and the Theorem block are identical to putnam_1962_a2_corrected.v,
+# and the only lines added between the preamble and the Variable are the proof's extra imports
+stmt() { sed -n '/^Variable R/,/\]\.$/p'; }   # Variable R, Definition mu, the solution set (ends with ")].")
+extra=$(strip putnam_1962_a2_corrected_proof.v | sed -n '11,/^Variable R/p' | grep -v '^$' | grep -vxE 'Variable R : realType\.|\(\* Extra imports for the proof \(they add nothing to the statement\)\. \*\)|From mathcomp Require Import boolp functions set_interval numfun constructive_ereal ereal\.|From mathcomp Require Import measurable_realfun realfun ftc interval ring lra\.|Import GRing\.Theory Num\.Theory Order\.Theory\.|Import numFieldNormedType\.Exports\.' || true)
+if diff <(strip putnam_1962_a2_corrected.v | sed -n '1,10p') <(strip putnam_1962_a2_corrected_proof.v | sed -n '1,10p') >/dev/null \
+   && diff <(strip putnam_1962_a2_corrected.v | stmt) <(strip putnam_1962_a2_corrected_proof.v | stmt) >/dev/null \
+   && diff <(strip putnam_1962_a2_corrected.v | thm) <(strip putnam_1962_a2_corrected_proof.v | thm) >/dev/null \
+   && [ -z "$extra" ]
+then ok "putnam_1962_a2_corrected_proof.v proves exactly the statement of putnam_1962_a2_corrected.v (preamble, Definition and Theorem identical; only the proof's imports added)"
+else bad "corrected A2 statement and proof file disagree${extra:+ (unexpected lines before the Variable: $extra)}"; fi
 
 echo
 if [ "$fail" = "0" ]; then
   echo "ALL CHECKS PASSED"
   # leave the folder as it was: remove everything this script produced
   for f in $FILES; do rm -f "$f.vo" "$f.vok" "$f.vos" "$f.glob" "$f.log" ".$f.aux"; done
-  rm -f ci_pa_* .ci_pa_*.aux ci_chk_* .lia.cache .nia.cache
+  rm -f ci_pa_* .ci_pa_*.aux ci_chk_* .lia.cache .nia.cache .lra.cache .nra.cache
   rm -rf ci_upstream
   echo "(build products and logs removed; the folder is as it was before the run)"
 else
