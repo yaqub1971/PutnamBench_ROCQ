@@ -5,10 +5,10 @@
 #   1. compile all 14 .v files in dependency order (fails on any error, and
 #      reports any warning that comes from a file's own lines rather than the
 #      library imports)
-#   2. Print Assumptions: A5 and 1963 A2 closed; B5 only R + classical axioms;
-#      the three False/vacuity derivations assume exactly the admitted upstream
-#      theorem (or nothing)
-#   3. independent kernel check (rocqchk / coqchk) of the three proofs
+#   2. Print Assumptions: A5 and 1963 A2 closed; B5, B2 and A4 only R + the
+#      classical axioms of mathcomp.reals; the three False/vacuity derivations
+#      assume exactly the admitted upstream theorem (or nothing)
+#   3. independent kernel check (rocqchk / coqchk) of the five proofs
 #   4. statement integrity: diff every statement against the upstream
 #      PutnamBench files at the pinned commit, ignoring only the header comments
 #      and the marked compat lines
@@ -29,8 +29,8 @@ step() { echo; echo "### $*"; }
 ok()   { echo "OK   $*"; }
 bad()  { echo "FAIL $*"; fail=1; }
 
-PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof"
-FILES="$PROOFS audit_1962_a5 audit_1963_a2 \
+PROOFS="putnam_1962_a5 putnam_1963_a2 putnam_1962_b5_corrected_proof putnam_1962_b2 putnam_1962_a4"
+FILES="$PROOFS \
  putnam_1962_b5 putnam_1962_b5_statement_is_false putnam_1962_b5_corrected \
  putnam_1962_a6 putnam_1962_a6_corrected putnam_1962_a6_statement_is_vacuous \
  putnam_1962_a2 putnam_1962_a2_statement_is_false putnam_1962_a2_corrected"
@@ -58,10 +58,16 @@ pa() { # name  module  theorem
 }
 pa a5 putnam_1962_a5 putnam_1962_a5 && { grep -q "Closed under the global context" ci_pa_a5.log && ok "putnam_1962_a5: closed under the global context (no axioms)" || bad "putnam_1962_a5 has assumptions: $(cat ci_pa_a5.names | tr '\n' ' ')"; }
 pa a2 putnam_1963_a2 putnam_1963_a2 && { grep -q "Closed under the global context" ci_pa_a2.log && ok "putnam_1963_a2: closed under the global context (no axioms)" || bad "putnam_1963_a2 has assumptions: $(cat ci_pa_a2.names | tr '\n' ' ')"; }
-pa b5 putnam_1962_b5_corrected_proof putnam_1962_b5 && {
-  unexpected=$(grep -vE '^boolp\.|(^|\.)R$' ci_pa_b5.names || true)
-  if [ -z "$unexpected" ] && grep -q '^boolp\.' ci_pa_b5.names; then ok "putnam_1962_b5 (corrected): only R and the classical axioms of mathcomp.reals: $(tr '\n' ' ' < ci_pa_b5.names)"
-  else bad "putnam_1962_b5 (corrected) has unexpected assumptions: $unexpected"; fi; }
+# R + the three classical axioms of mathcomp.reals, and nothing else
+classical_only() { # tag  module  theorem  label
+  pa "$1" "$2" "$3" && {
+    unexpected=$(grep -vE '^boolp\.|(^|\.)R$' "ci_pa_$1.names" || true)
+    if [ -z "$unexpected" ] && grep -q '^boolp\.' "ci_pa_$1.names"; then ok "$4: only R and the classical axioms of mathcomp.reals: $(tr '\n' ' ' < "ci_pa_$1.names")"
+    else bad "$4 has unexpected assumptions: $unexpected"; fi; }
+}
+classical_only b5 putnam_1962_b5_corrected_proof putnam_1962_b5 "putnam_1962_b5 (corrected)"
+classical_only b2 putnam_1962_b2 putnam_1962_b2 "putnam_1962_b2"
+classical_only a4 putnam_1962_a4 putnam_1962_a4 "putnam_1962_a4"
 pa b5f putnam_1962_b5_statement_is_false putnam_1962_b5_rocq_statement_is_false && {
   grep -qxE '(putnam_1962_b5\.)?putnam_1962_b5' ci_pa_b5f.names && ok "B5 refutation assumes exactly the admitted upstream putnam_1962_b5 (plus R and classical axioms)" || bad "B5 refutation: expected the admitted putnam_1962_b5 among the assumptions: $(tr '\n' ' ' < ci_pa_b5f.names)"; }
 pa a2f putnam_1962_a2_statement_is_false putnam_1962_a2_rocq_statement_is_false && {
@@ -76,7 +82,7 @@ done
 
 step "4. statement integrity against upstream PutnamBench commit ${COMMIT:0:7}"
 mkdir -p ci_upstream
-for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962_a2; do
+for p in putnam_1962_a5 putnam_1963_a2 putnam_1962_b5 putnam_1962_a6 putnam_1962_a2 putnam_1962_b2 putnam_1962_a4; do
   curl -sSfL -o "ci_upstream/$p.v" "$UP/$p.v" || { bad "could not download upstream $p.v"; }
 done
 strip() { awk 'BEGIN{h=1} h&&/^   =+ \*\)$/{h=0; getline; next} h{next} !/compat:/{print}' "$1"; }
@@ -99,6 +105,13 @@ diff <(strip putnam_1962_b5_corrected.v | thm) <(strip putnam_1962_b5_corrected_
 diff <(up putnam_1962_a6) <(strip putnam_1962_a6.v) >/dev/null && ok "putnam_1962_a6.v: identical to upstream" || bad "putnam_1962_a6.v differs from upstream"
 diff <(up putnam_1962_a6 | thm) <(strip putnam_1962_a6_statement_is_vacuous.v | thm) >/dev/null && ok "putnam_1962_a6_statement_is_vacuous.v: Theorem identical to upstream" || bad "A6 vacuity file: Theorem differs from upstream"
 n=$(nchanged <(up putnam_1962_a6) <(strip putnam_1962_a6_corrected.v)); [ "$n" = "2" ] && ok "putnam_1962_a6_corrected.v: exactly one line differs from upstream (hSScond)" || bad "putnam_1962_a6_corrected.v: $n changed lines vs upstream (expected 2)"
+# B2 and A4: preamble (everything before the Variable) and Theorem block identical
+if diff <(up putnam_1962_b2 | sed -n '1,10p') <(strip putnam_1962_b2.v | sed -n '1,10p') >/dev/null \
+   && diff <(up putnam_1962_b2 | thm) <(strip putnam_1962_b2.v | thm) >/dev/null
+then ok "putnam_1962_b2.v: preamble and Theorem identical to upstream"; else bad "putnam_1962_b2.v differs from upstream in its statement"; fi
+if diff <(up putnam_1962_a4 | sed -n '1,10p') <(strip putnam_1962_a4.v | sed -n '1,10p') >/dev/null \
+   && diff <(up putnam_1962_a4 | thm) <(strip putnam_1962_a4.v | thm) >/dev/null
+then ok "putnam_1962_a4.v: preamble and Theorem identical to upstream"; else bad "putnam_1962_a4.v differs from upstream in its statement"; fi
 # A2: evidence copy identical; corrected differs only in the solution-set Definition
 diff <(up putnam_1962_a2) <(strip putnam_1962_a2.v) >/dev/null && ok "putnam_1962_a2.v: identical to upstream (apart from compat lines)" || bad "putnam_1962_a2.v differs from upstream"
 nosol() { awk '/^\(\* Proposed fix:|^Definition putnam_1962_a2_solution/{skip=1} /^Theorem/{skip=0} !skip{print}'; }
