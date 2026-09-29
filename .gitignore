@@ -1,0 +1,20 @@
+# Coq/Rocq build products
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+*.lia.cache
+*.nia.cache
+*.lra.cache
+*.nra.cache
+.lia.cache
+.nia.cache
+.lra.cache
+.nra.cache
+*.log
+ci_pa_*
+ci_chk_*
+ci_up_b6.*
+ci_same_b6.*
+ci_upstream/

@@ -76,6 +76,25 @@ Full details, evidence files and proposed fixes are in
 PutnamBench maintainers through the repository's issue tracker so the statements
 can be fixed upstream.
 
+## Extended set: corrected statements for 25 further defective problems (no proofs)
+
+The folder [`extended/`](extended/) extends the report above to the rest of the audit: of the 92
+PutnamBench Rocq statements with a non-OK verdict (the three 1962 problems above included),
+25 more now have a **corrected statement**, one folder each (`extended/<problem>/`): the upstream
+statement kept as evidence, the proposed fix (`_corrected.v`, ending in `Admitted`: a statement,
+not a proof), where applicable a derivation of `False` from the upstream theorem or a vacuity
+proof, and `NOTES.md` with the defect, the fix and its justification, the sanity checks run, and a
+difficulty estimate and proof sketch for future work. Each corrected statement was written and
+then independently reviewed for faithfulness to the informal problem; all 25 were approved.
+No proofs are attempted in that folder. `extended/verify.sh` checks every folder (compilation
+with zero warnings from the files' own lines, byte-identity of the upstream copies with
+PutnamBench, the evidence files' assumptions, and statement/proof identity checks for any future
+proof file); the `verify-extended` job of `.github/workflows/verify.yml` runs it on every push under
+Rocq 9.1 / MathComp 2.5 / MathComp-Analysis 1.16 / Coquelicot 3.4.4, and the files were also
+checked locally under Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1.
+The per-problem table, and the list of the 64 audited problems not yet handled, are in
+[`extended/README.md`](extended/README.md).
+
 ## How the proofs were checked
 
 Toolchain: Rocq 9.1.0 (Rocq Platform 2026.07, macOS) with the MathComp 2.5
