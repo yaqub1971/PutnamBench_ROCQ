@@ -134,9 +134,10 @@ Toolchains: (a) Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coqueli
    (`propositional_extensionality`, `functional_extensionality_dep`,
    `constructive_indefinite_description`) and `putnam_1964_a6.R : realType`, on both.
 6. **Non-vacuity and non-triviality of the corrected statement.** I wrote a scratch file
-   `sanity.v` (in the scratch directory, not a deliverable). It `Require`s the compiled
-   `putnam_1964_a6_corrected` and compiles with exit 0 and no own-line warnings on both (a)
-   and (b). It proves:
+   `sanity.v` (in the scratch directory, `work/putnam_1964_a6/t3/sanity.v`, not a
+   deliverable). It `Require`s the compiled `putnam_1964_a6_corrected` and compiles with
+   exit 0 and no own-line warnings on both (a) and (b). It was re-run against the final
+   corrected file after the last header edit, with the same outcome. It proves:
    * (A) `corrected_applies_to_T012`: the corrected theorem applied to `T = [set 0; 1; 2]`.
      Both `hT` (by `finite_set3`) and `hrepdist` are discharged *in their exact form*: the
      pairs at distance 1 are `(0,1)` and `(1,2)`, which are twins, and `(0,2)` has the
