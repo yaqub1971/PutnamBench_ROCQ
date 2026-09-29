@@ -11,11 +11,12 @@
    2 > 1 are Peano's le_S/le_n), exposes the body of MathComp's locked big operator with
    "rewrite unlock", evaluates both sides with vm_compute to Posz 2 = Posz 8, and concludes
    with discriminate.
-   Compile with:  coqc -R . "" putnam_1966_a1_statement_is_false.v
-   (after compiling putnam_1966_a1.v).
+   Compile with:  rocq compile -R . "" putnam_1966_a1_statement_is_false.v  (Rocq 9.1), or
+   coqc -R . "" putnam_1966_a1_statement_is_false.v  (Coq 8.18), after compiling putnam_1966_a1.v.
    Print Assumptions at the end shows the derivation depends only on the admitted theorem
    putnam_1966_a1 itself (no other axiom).
-   Verified on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04):
+   Verified on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on
+   Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04):
    compiles and prints "Axioms: putnam_1966_a1 : ..." and nothing else.
    About the warnings: the import line below triggers library warnings emitted by MathComp
    itself (overridden notations, ambiguous coercion paths). They are library warnings, not

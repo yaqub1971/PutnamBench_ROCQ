@@ -31,9 +31,9 @@
    order) overrides ring_scope notations of ssralg, so ssralg is re-imported as a
    precaution for the statement's ring_scope arithmetic on R (a no-op on MathComp
    <= 2.4). Neither changes the meaning of the statement.
-   Verified: compiles on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
+   Verified: compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
    About the warnings: the PutnamBench Rocq statements were written for Coq 8.x with
-   MathComp 2.1. On that toolchain the first import line below triggers ~25 warnings
+   MathComp 2.1. On that toolchain the first import line below triggers 23 warnings
    emitted by MathComp itself (ambiguous coercion paths, overridden notations); the
    repository's README describes the further ones under Rocq 9.1 / MathComp 2.5.
    They are library warnings, not warnings about this file: none of this file's own

@@ -77,8 +77,11 @@ Apart from the header comment, `putnam_1964_a6_corrected.v` differs from `putnam
   available through upstream's imports: on Rocq 9.1 without the new import, `Locate` finds
   `mathcomp.classical.cardinality.finite_set` but the bare name is "not found". Adding
   `cardinality` to the `classical_sets` import line is the form the upstream corpus itself
-  uses where it needs `finite_set` (`putnam_1974_a1.v`, `putnam_2014_a4.v`,
-  `putnam_2015_b5.v`: `From mathcomp Require Import classical_sets cardinality.`).
+  uses: `putnam_1980_a5.v` (whose conclusion is a `finite_set`), and also `putnam_1974_a1.v`
+  and `putnam_2015_b5.v` (which use `#<=` / `#=`), all with
+  `From mathcomp Require Import classical_sets cardinality.` (checked by `grep` over the
+  upstream `coq/` directory: `putnam_1980_a5.v` is the only upstream file that uses
+  `finite_set`).
 * The hypothesis sits right after `(T : set R)`, which mirrors Lean's `(S : Finset ℝ)`. The
   Lean statement is the model: it encodes finiteness by the type of `S` and is otherwise
   the same statement (same `pairs`, `distance`, `hrepdist`, and `q ≠ p → ∃ r : ℚ, ... = r`).
@@ -151,7 +154,11 @@ Toolchains: (a) Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coqueli
      injection `n |-> n%:R` and `infinite_nat`). So the refuting instance
      `T = [set: R]` of the evidence file is excluded by the new hypothesis.
      `Print Assumptions`: only the three `boolp` axioms and `R`.
-7. **Verifier** (`extended/verify.sh putnam_1964_a6`), run last, under both toolchains:
+7. **Verifier** (`extended/verify.sh putnam_1964_a6`), run last, under both toolchains,
+   after the final header and NOTES edits (the files were also recompiled on both
+   toolchains after those edits: all three exit 0, with warnings only at the first import
+   line, which is line 57 of the corrected file, line 41 of the upstream copy and line 30
+   of the evidence file):
    * Rocq 9.1.1 (`source /opt/rocq91/bin/rocq-env.sh && bash verify.sh putnam_1964_a6`):
 
          toolchain: The Rocq Prover, version 9.1.1  (rocq compile)
@@ -165,11 +172,19 @@ Toolchains: (a) Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coqueli
          ALL CHECKS PASSED
 
      The NOTE is not about this folder's content. The verifier downloads into the
-     shared directory `extended/ci_upstream`, which other problems' verifier runs create
-     and delete concurrently; that is the most likely cause, since the same `curl`
-     command under the same environment succeeds when it writes to a scratch directory.
-     The comparison itself passed in the Coq 8.18 run below, and check 3 repeats it byte
-     for byte.
+     shared directory `extended/ci_upstream`, and its line 173 (`rm -rf ci_upstream`)
+     deletes that directory at the end of every run, so a verifier run for another problem
+     going on at the same time can remove it mid-download. To get a clean run I copied
+     `verify.sh` and this folder (`diff -r`: identical) to a scratch directory and ran the
+     verifier there under Rocq 9.1.1. The download and the comparison both succeeded:
+
+         OK   putnam_1964_a6.v (upstream copy) compiles
+         OK   putnam_1964_a6_corrected.v compiles
+         OK   putnam_1964_a6_corrected.v ends in Admitted (statement only)
+         OK   putnam_1964_a6_statement_is_false.v compiles
+         OK   putnam_1964_a6_statement_is_false.v: assumes the admitted upstream theorem putnam_1964_a6 (False follows from it)
+         OK   putnam_1964_a6.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+         ALL CHECKS PASSED
    * Coq 8.18.0 (`bash verify.sh putnam_1964_a6`):
 
          toolchain: The Coq Proof Assistant, version 8.18.0  (coqc)

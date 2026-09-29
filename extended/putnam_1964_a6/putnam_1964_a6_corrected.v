@@ -17,9 +17,10 @@
    upstream statement with the same compat lines) in one changed line and one added line:
      -From mathcomp Require Import classical_sets.
      +From mathcomp Require Import classical_sets cardinality.
-        (cardinality is the MathComp-Analysis module that defines finite_set; this is
-        the import line the upstream corpus itself uses where it needs finite_set,
-        e.g. putnam_1974_a1.v, putnam_2015_b5.v)
+        (cardinality is the MathComp-Analysis module that defines finite_set; the
+        upstream corpus uses this same import line, e.g. putnam_1980_a5.v, whose
+        conclusion is a finite_set, and putnam_1974_a1.v, putnam_2015_b5.v, which
+        use #<= / #=)
      +    (hT : finite_set T)
         (inserted right after "(T : set R)": the finiteness hypothesis of the problem,
         the counterpart of Lean's S : Finset R)

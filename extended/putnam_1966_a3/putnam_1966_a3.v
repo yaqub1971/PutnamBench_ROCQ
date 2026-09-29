@@ -22,8 +22,12 @@
    on Rocq 9.1 / MathComp 2.5.
    Does not compile on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 (Ubuntu 24.04):
    error at the "--> 1" of the conclusion, quoted above. (The upstream "Variable R :
-   realType." outside a Section also draws Coq 8.18's local-declaration warning; the
-   repository README documents that Rocq >= 9.0 rejects it.)
+   realType." outside a Section also draws Coq 8.18's local-declaration warning there.)
+   Does not compile on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 (Nix) either:
+   there the first error is at the top-level "Variable R : realType." line,
+     Error: Use of "Variable" or "Hypothesis" outside sections behaves as
+     "#[local] Parameter" or "#[local] Axiom". [declaration-outside-section,vernacular,default]
+   (Rocq >= 9.0 rejects a Variable declared outside a Section), before the "--> 1" is reached.
    About the warnings: the PutnamBench Rocq statements were written for Coq 8.x with
    MathComp 2.1; the import lines below trigger warnings emitted by MathComp itself
    (ambiguous coercion paths, overridden notations), which are library warnings, not

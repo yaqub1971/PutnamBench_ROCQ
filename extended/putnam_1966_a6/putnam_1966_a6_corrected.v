@@ -23,15 +23,16 @@
    the limit are unchanged; the corrected statement is neither weakened nor strengthened.
    Compat lines: the lines marked "(* compat: ... *)" are the repository's marked
    compatibility lines for its CI toolchain (Rocq 9.1 / MathComp 2.5 / MathComp-Analysis
-   1.16, not run here): (1) a Variable outside a Section is an error since Rocq 9.0, and
+   1.16): (1) a Variable outside a Section is an error since Rocq 9.0, and
    the upstream statement declares R this way; (2) MathComp 2.5's all_ssreflect
    re-declares the ring notations 1 and %:R, which the statement uses (n%:R, 1 + ..., 3),
    so ssralg is re-imported after the upstream imports as in the repository's other
    MathComp files (this file's upstream import order is all_ssreflect then all_algebra,
-   so the re-import is expected to be redundant here; it is kept for uniformity). On
+   so the re-import is redundant here: without it the file also compiles on Rocq 9.1,
+   with warnings only at the import lines; it is kept for uniformity). On
    Coq 8.18 / MathComp 2.1 both are no-ops. Neither changes the meaning of the statement.
-   Verified: compiles on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
-   About the warnings: on that toolchain the import lines below trigger library warnings
+   Verified: compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
+   About the warnings: on both toolchains the import lines below trigger library warnings
    emitted by MathComp itself (overridden notations, ambiguous coercion paths); they are
    not about this file, and none of this file's own lines produces any. The import lines
    are kept exactly as upstream wrote them so that the statement stays identical to the

@@ -77,27 +77,39 @@ same hypotheses, same conclusion. No compat lines are needed in any of the files
 `Variable` outside a `Section`, `ssralg` is already imported after `all_ssreflect`, no
 derivative notation.
 
-## 4. Sanity checks (all run on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1, Ubuntu 24.04)
+## 4. Sanity checks
 
-1. Compilation, from inside this folder, in dependency order:
-   `coqc -R . "" putnam_1966_a1.v`, `coqc -R . "" putnam_1966_a1_corrected.v`,
-   `coqc -R . "" putnam_1966_a1_statement_is_false.v`: all three exit 0 and produce a `.vo`;
-   the only warnings are the MathComp library warnings at the `From mathcomp Require Import`
-   line (counted with the same `File "...", line N` filter as `extended/verify.sh`: 0 warnings
-   from the files' own lines in each case).
+Toolchains: Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix,
+the primary one) and Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1
+(Ubuntu 24.04). Items 1 and 3-7 were run on both toolchains. Item 2 is a plain `diff`, which
+does not depend on the toolchain.
+
+1. Compilation, from inside this folder, in dependency order, once per toolchain (build
+   products deleted in between):
+   * Rocq 9.1.1: `rocq compile -R . "" putnam_1966_a1.v`, then `..._corrected.v`, then
+     `..._statement_is_false.v`. All three exit 0. In each file, the only warnings (27) point
+     at the `From mathcomp Require Import` line: MathComp library warnings (overridden
+     notations, ambiguous coercion paths, `all_ssreflect` deprecation). No warning comes from
+     the files' own lines.
+   * Coq 8.18.0: the same with `coqc -R . "" ...`. All three exit 0, and the only warnings
+     (23 per file) are again at the import line.
+   * Both runs count warnings with the same `File "...", line N` filter as `extended/verify.sh`.
 2. Statement integrity: `putnam_1966_a1.v` with its header box removed (the `strip` filter of
    `extended/verify.sh`) is byte-identical to the upstream file (`diff` empty, no compat
    lines); `diff` of the header-stripped upstream copy against the header-stripped corrected
-   file shows exactly the one line quoted in section 3.
-3. Evidence: `putnam_1966_a1_statement_is_false.v` compiles and its `Print Assumptions`
-   prints exactly one axiom, the admitted upstream theorem
+   file shows exactly the one line quoted in section 3. The only other difference is a newline:
+   upstream has no final newline and the corrected file has one. This was re-checked after
+   the latest header edits.
+3. Evidence: `putnam_1966_a1_statement_is_false.v` compiles on both toolchains. On each one
+   its `Print Assumptions` prints exactly one axiom, the admitted upstream theorem
    `putnam_1966_a1 : let f := ... in forall x y : nat, ...` -- nothing else (no classical
    axiom is involved; the derivation is `have h := @putnam_1966_a1 2 1 (@le_S 1 1 (le_n 1))
    (le_n 1) (le_n 2). rewrite unlock in h; vm_compute in h. discriminate.`; `rewrite unlock`
    is needed because MathComp's `bigop` is an `HB.lock`ed constant that `vm_compute` cannot
    unfold).
-4. Small-value checks in a scratch file (`probe.v`, same imports and scope as the statement,
-   compiled with exit 0), proved by `rewrite unlock; vm_compute`:
+4. Small-value checks in a scratch file (`probe.v`, same imports and scope as the statement),
+   proved by `rewrite unlock; vm_compute`. It compiles with exit 0 on both toolchains, and the
+   only warnings are at its import line:
    * terms `m = 0..7` of the upstream summand: `[:: 0; 0; 4; 4; 8; 8; 12; 12]`; of the
      corrected summand: `[:: 0; 0; 1; 1; 2; 2; 3; 3]`;
    * upstream `f 0..6 = (0, 0, 4, 8, 16, 24, 36)`; corrected `f 0..6 = (0, 0, 1, 2, 4, 6, 9)`
@@ -111,7 +123,36 @@ derivative notation.
 5. Non-vacuity: the hypotheses are satisfiable, e.g. `gt 2 0 /\ gt 1 0 /\ gt 2 1` (lemma
    `hyps_ok` in `probe.v`, proved by `le_S`/`le_n`). The corrected statement is not trivially
    true: with the upstream `f` the same conclusion is false, so its truth depends on `f`.
-6. Proof sketch check: see section 5.
+6. Proof sketch check: the sketch of section 5 was compiled as a scratch file on both
+   toolchains. Section 5 gives the outcome.
+7. Verifier, run after all edits, with the verdict lines quoted verbatim:
+   * `(source /opt/rocq91/bin/rocq-env.sh && cd extended && bash verify.sh putnam_1966_a1)`,
+     toolchain `The Rocq Prover, version 9.1.1  (rocq compile)`:
+
+         OK   putnam_1966_a1.v (upstream copy) compiles
+         OK   putnam_1966_a1_corrected.v compiles
+         OK   putnam_1966_a1_corrected.v ends in Admitted (statement only)
+         OK   putnam_1966_a1_statement_is_false.v compiles
+         OK   putnam_1966_a1_statement_is_false.v: assumes the admitted upstream theorem putnam_1966_a1 (False follows from it)
+         OK   putnam_1966_a1.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+         ALL CHECKS PASSED
+
+   * `(cd extended && bash verify.sh putnam_1966_a1)`, toolchain
+     `The Coq Proof Assistant, version 8.18.0  (coqc)`:
+
+         OK   putnam_1966_a1.v (upstream copy) compiles
+         OK   putnam_1966_a1_corrected.v compiles
+         OK   putnam_1966_a1_corrected.v ends in Admitted (statement only)
+         OK   putnam_1966_a1_statement_is_false.v compiles
+         OK   putnam_1966_a1_statement_is_false.v: assumes the admitted upstream theorem putnam_1966_a1 (False follows from it)
+         curl: (23) Failure writing output to destination
+         NOTE putnam_1966_a1.v: could not download upstream for comparison
+         ALL CHECKS PASSED
+
+     In that run the upstream comparison was skipped because the download failed
+     (curl error 23), which is not a statement defect. The same comparison passed in the
+     Rocq 9.1 run just before it, and the manual `diff` of item 2 against the local upstream
+     copy is empty.
 
 ## 5. Difficulty and proof sketch for `putnam_1966_a1_corrected_proof.v`
 
@@ -127,35 +168,55 @@ Sketch (MathComp only; `From mathcomp Require Import zify` for `lia` on `nat`/`i
 2. `sum_half n : \sum_(0 <= m < n.+1) m./2 = n./2 * uphalf n` by induction on `n`:
    `big_nat1` for `n = 0`; `big_nat_recr //=` for the step, after which `n.+1./2` is already
    `uphalf n` and `uphalf n.+1` is `(n./2).+1` (`half`/`uphalf` are a mutual fixpoint, so
-   `/=` unfolds them), and the goal `n./2 * uphalf n + uphalf n = uphalf n * (n./2).+1` is
-   `mulnSr` + `mulnC` (or `lia`).
+   `/=` unfolds them). The remaining goal
+   `n./2 * uphalf n + uphalf n = uphalf n * (n./2).+1` is closed by `lia`. A plain `mulnSr`/`mulnC` rewrite does not match the goal that `big_nat_recr //=`
+   leaves.
 3. `fE n : f n = (n./2 * uphalf n)%:Z`: `rewrite /f addn1 (eq_bigr _ (fun m _ => termE m))`,
-   push `Posz` out of the sum with `big_morph Posz PoszD (erefl _)` (alternatively
-   `natr_sum` + `natz`), then `sum_half`. (The theorem's `f` is a let-binder: introduce it
+   push `Posz` out of the sum with `big_morph Posz PoszD (erefl _)`, then `sum_half`.
+   `natr_sum` + `natz` is an alternative that was not tried. (The theorem's `f` is a let-binder: introduce it
    with `move=> f` or unfold with `cbv zeta`.)
-4. Main goal: `move=> x y _ _ /ltP hxy`; replace `Nat.add x y`, `Nat.sub x y` by `x + y`,
-   `x - y` (`by []`, they are convertible to `addn`/`subn`); write `x = d + y`
-   (`exists (x - y); rewrite subnK // ltnW`), so `x + y = d + y + y` and `x - y = d`
-   (`addnK`); rewrite with `fE`; the three facts `(d + y + y)./2 = d./2 + y`,
-   `uphalf (d + y + y) = uphalf d + y`, `d./2 + uphalf d = d` are each `lia`
-   (`halfD`, `uphalf_half`, `odd_double_half` would do it by hand); after
+4. Main goal: `move=> x y _ _ /ltP hxy`. Replace `Nat.add x y`, `Nat.sub x y` by
+   `(x + y)%N`, `(x - y)%N` (`by []`: they are convertible to `addn`/`subn`). Then write
+   `x = (d + y)%N` (`exists (x - y)%N; rewrite subnK // ltnW`), so `x + y = d + y + y` and
+   `x - y = d` (`addnK`), and rewrite with `fE`. Every one of these auxiliary `nat` equations
+   must carry the `%N` delimiter, because the file opens `ring_scope`: without it `+`/`-`
+   are parsed as ring operations and the equation does not typecheck (seen on Rocq 9.1).
+   The three facts `(d + y + y)%N./2 = (d./2 + y)%N`,
+   `uphalf (d + y + y)%N = (uphalf d + y)%N` and `(d./2 + uphalf d)%N = d` are each `lia`
+   (`halfD`, `uphalf_half`, `odd_double_half` should also work by hand, but that was not
+   tried). After
    `rewrite h1 h2 -{1}h3` what remains is the polynomial identity
    `((a + b + y) * y)%:Z = ((a + y) * (b + y))%:Z - (a * b)%:Z` in `a = d./2`, `b = uphalf d`,
-   which `lia` (or `PoszM`/`PoszD` + `ring`) closes.
+   which `lia` closes. `PoszM`/`PoszD` + `ring` is an alternative that was not tried.
 
-Expected `Print Assumptions`: `Closed under the global context` (no `Variable`, no
-classical axiom; `zify`/`lia` add none).
+`Print Assumptions`: `Closed under the global context` (no `Variable`, no classical axiom;
+`zify`/`lia` add none). This was observed on the scratch run below.
 
-Scratch check of this sketch (`sketch.v` in the scratch directory, not a deliverable): the
-status of the run is recorded in the last paragraph of this section.
+Scratch check of this sketch: `sketch.v` in the scratch directory (not a deliverable). It
+holds the corrected statement verbatim under the name `putnam_1966_a1_sketch`, with the same
+imports plus `zify`.
+
+* **First run failed.** It stopped at step 2 with `Error: The LHS of mulnSr (_ * _.+1)%N
+  does not match any subterm of the goal`: a plain `mulnSr` rewrite does not match the goal
+  that `big_nat_recr //=` leaves.
+* **Fixes.** Step 2 is now closed by `lia`. In step 4 the auxiliary equations now carry
+  `%N`. Without it, `Nat.add x y = x + y` and `exists d, x = d + y` fail to typecheck in
+  `ring_scope`.
+* **Final run passed on both toolchains.** Exit 0 on Rocq 9.1.1 / MathComp 2.5.0 and on
+  Coq 8.18.0 / MathComp 2.1.0. The only warnings are at the import line, and
+  `Print Assumptions putnam_1966_a1_sketch` prints `Closed under the global context` on both.
+
+The text of steps 1-4 above matches that final `sketch.v`, so the sketch has been checked.
+In the proof phase it can be copied almost unchanged into `putnam_1966_a1_corrected_proof.v`.
+The difficulty estimate stays at 2/5 (routine).
 
 ## 6. Status of the files
 
 | file | status |
 |---|---|
-| `putnam_1966_a1.v` | upstream statement + header comment, no compat lines; compiles (Coq 8.18.0); header-stripped text byte-identical to upstream |
-| `putnam_1966_a1_corrected.v` | corrected statement, one line differs from upstream (two subterms); compiles; ends in `Proof. Admitted.` |
-| `putnam_1966_a1_statement_is_false.v` | derives `False` from the admitted upstream theorem at `x = 2, y = 1`; compiles; `Print Assumptions` lists only `putnam_1966_a1` |
+| `putnam_1966_a1.v` | upstream statement + header comment, no compat lines; compiles on Rocq 9.1.1 and Coq 8.18.0; header-stripped text byte-identical to upstream |
+| `putnam_1966_a1_corrected.v` | corrected statement, one line differs from upstream (two subterms); compiles on Rocq 9.1.1 and Coq 8.18.0; ends in `Proof. Admitted.` |
+| `putnam_1966_a1_statement_is_false.v` | derives `False` from the admitted upstream theorem at `x = 2, y = 1`; compiles on Rocq 9.1.1 and Coq 8.18.0; `Print Assumptions` lists only `putnam_1966_a1` on both |
 | `putnam_1966_a1_corrected_proof.v` | not written in this phase (proof phase) |
 | `NOTES.md` | this file |
 

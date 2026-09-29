@@ -61,7 +61,11 @@ no further defect.
 **Rocq 9.1 / MathComp 2.5 compatibility (not a mathematical defect):** the upstream text
 has the two constructs the repository README documents as fatal on the CI toolchain:
 `Variable R : realType.` outside a `Section` (an error since Rocq 9.0; Coq 8.18 only
-warns, and that warning does appear in this machine's log at the `Variable` line) and
+warns, and that warning does appear in this machine's Coq 8.18 log at the `Variable`
+line; under Rocq 9.1.1 compiling the upstream copy stops exactly there, with
+`Error: Use of "Variable" or "Hypothesis" outside sections behaves as "#[local] Parameter"
+or "#[local] Axiom". [declaration-outside-section,vernacular,default]`, so on the CI
+toolchain the `--> 1` error is not even reached) and
 the import order `all_algebra all_ssreflect` (MathComp 2.5's `all_ssreflect` overrides
 the ring notations `1` and `%:R`). The corrected file carries the repository's marked
 compat lines for both.
@@ -109,7 +113,21 @@ The Rocq statement is a line-by-line transcription of it (1-indexed `x`, same `h
 the Lean statement exactly and deviates from it nowhere. Both agree with the informal
 problem.
 
-## 4. Sanity checks actually run (Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0, Ubuntu 24.04)
+## 4. Sanity checks actually run
+
+Two toolchains: **Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot
+3.4.4** (Nix, `/opt/rocq91`, the CI toolchain; check 0 and the verifier run below) and
+**Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1** (Ubuntu
+24.04; checks 1-4 unless stated otherwise).
+
+0. **Rocq 9.1.1 compile.**
+   `source /opt/rocq91/bin/rocq-env.sh && cd /home/user/PutnamBench_ROCQ/extended/putnam_1966_a3 && rocq compile -R . "" putnam_1966_a3_corrected.v`
+   exits 0 and writes the `.vo`. All 30 warnings in the log point at line 41 of the file
+   (the upstream `From mathcomp Require Import all_algebra all_ssreflect.` line: the
+   `all_ssreflect` deprecation, ambiguous coercion paths, overridden notations); no
+   warning and no error at any other line (compat lines, `Variable`, `Theorem`). The
+   upstream copy `putnam_1966_a3.v` exits 1 under Rocq 9.1.1, first error at its line 50
+   (`Variable R : realType.`), `declaration-outside-section`, text quoted in section 2.
 
 1. **Corrected statement compiles.**
    `cd /home/user/PutnamBench_ROCQ/extended/putnam_1966_a3 && coqc -R . "" putnam_1966_a3_corrected.v`
@@ -119,7 +137,7 @@ problem.
    notations); no warning or error points at any other line, in particular none at the
    compat lines, the `Variable` or the `Theorem`. No `Error` line.
 2. **Upstream copy fails as described.** `coqc -R . "" putnam_1966_a3.v` exits 1 with no
-   `.vo`; the only error is at the conclusion line (line 51 of the file with its header,
+   `.vo`; the only error is at the conclusion line (line 55 of the file with its header,
    upstream line 18), text exactly as quoted in section 2. Its log also shows Coq 8.18's
    `local-declaration` warning at the upstream `Variable R : realType.` line.
 3. **Byte identity.** `tail -c 574 putnam_1966_a3.v | cmp - <upstream file>` reports no
@@ -129,7 +147,14 @@ problem.
    (the `diff` output of the assembly script is reproduced in section 3). The two files
    were assembled from the upstream bytes by a script rather than retyped.
 4. **Non-vacuity and shape** (scratch file `scratch_checks.v`, in the scratch directory,
-   compiled with exit 0):
+   compiled with exit 0 on Coq 8.18.0; a copy with the three ssralg compat lines added
+   after the second import line, `work/putnam_1966_a3/r91/scratch_checks.v`, also compiles
+   with exit 0 on Rocq 9.1.1 and every lemma below closes there too. Without the ssralg
+   re-import the Rocq 9.1 copy fails at the first `%:R`/`1` with `The term "1" has type
+   "BaseUMagma.sort ?s1" while it is expected to have type "Algebra.BaseAddUMagma.sort ?V"`,
+   which is exactly why the corrected file carries that compat block. Under Rocq 9.1.1
+   `Print concl` shows the same term with MathComp 2.5 structure names:
+   `cvg_to (nbhs (fmap (fun n => GRing.mul (Algebra.natmul (GRing.one _) n) (x n)) (nbhs eventually))) (nbhs (GRing.one _ : Real.sort R))`):
    * `Definition concl x := (fun n : nat => n%:R * x n) @ \oo --> (1 : R)` elaborates;
      `Set Printing All. Print concl.` shows
      `cvg_to (nbhs (fmap (fun n => GRing.mul (GRing.natmul GRing.one n) (x n)) (nbhs eventually))) (nbhs (GRing.one : Real.sort R))`,
@@ -159,9 +184,30 @@ problem.
    is `compile`, the statement is neither false nor vacuous (section 4.4 exhibits a
    model of the hypotheses, and the conclusion is the true theorem).
 
-Not run: anything on Rocq 9.1 / MathComp 2.5 / MathComp-Analysis 1.16 (not installed
-here). The compat lines are copied verbatim from the repository's root files, which the
-repository author verified on that toolchain with the same import shape.
+**Verifier, both toolchains** (`extended/verify.sh`, run after the final edits):
+
+* Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix,
+  /opt/rocq91), `(source /opt/rocq91/bin/rocq-env.sh && cd /home/user/PutnamBench_ROCQ/extended && bash verify.sh putnam_1966_a3)`:
+  prints `NOTE putnam_1966_a3.v (upstream copy) does not compile on this toolchain (expected for the 'compile' verdicts)`
+  (its first error is Rocq >= 9.0 rejecting the top-level `Variable R : realType.`:
+  `Use of "Variable" or "Hypothesis" outside sections behaves as "#[local] Parameter" or "#[local] Axiom". [declaration-outside-section,vernacular,default]`),
+  `OK   putnam_1966_a3_corrected.v compiles` (no warning from its own lines, check 0),
+  `OK   putnam_1966_a3_corrected.v ends in Admitted (statement only)`,
+  `OK   putnam_1966_a3.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines`,
+  `ALL CHECKS PASSED`.
+* Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04),
+  `(cd /home/user/PutnamBench_ROCQ/extended && bash verify.sh putnam_1966_a3)`:
+  prints the same NOTE (here the error is the `--> 1` one:
+  `The term "1" has type "GRing.SemiRing.sort ?s0" while it is expected to have type "Filtered.sort ?s".`),
+  `OK   putnam_1966_a3_corrected.v compiles`,
+  `OK   putnam_1966_a3_corrected.v ends in Admitted (statement only)`,
+  `OK   putnam_1966_a3.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines`,
+  `ALL CHECKS PASSED`.
+
+(One earlier Rocq 9.1 run printed `NOTE putnam_1966_a3.v: could not download upstream for
+comparison` after a `curl: (23) Failure writing output`: the verifier's shared
+`extended/ci_upstream/` directory was removed by another problem's concurrent verifier run.
+Re-running gave the output quoted above; this is a harness race, not a property of the files.)
 
 ## 5. Difficulty estimate and proof sketch
 
@@ -180,8 +226,15 @@ Mathematical proof:
    telescope: (1/n) sum_{k=1}^{n} (y_{k+1} - y_k) = (y_{n+1} - y_1)/n -> 1. Hence
    y_{n+1}/n -> 1, i.e. n x_{n+1} -> 1, and n x_n = (n/(n-1)) (n-1) x_n -> 1 * 1 = 1.
 
-Rocq plan (all names checked to exist in the installed MathComp 2.1.0 /
-MathComp-Analysis 1.0.0 sources; extra imports for the proof: `sequences`, `lra`):
+Rocq plan (all names checked to exist both in the installed MathComp 2.1.0 /
+MathComp-Analysis 1.0.0 sources and in the MathComp 2.5.0 / MathComp-Analysis 1.16.0
+sources of the CI toolchain: in 1.16.0 `cesaro`, `cvg_harmonic`, `nonincreasing_is_cvgn`,
+`near_nonincreasing_is_cvgn`, `cvg_shiftS`, `cvg_shiftn`, `seriesEnat` and the notation
+`nonincreasing_seq` are in `theories/sequences.v`, `cvgM`/`cvgV` in
+`theories/normedtype_theory/normed_module.v`, `cvgB`/`cvgD` in
+`theories/normedtype_theory/pseudometric_normed_Zmodule.v`; in 2.5.0 `telescope_sumr` is
+in `algebra/ssralg.v` (and `boot/nmodule.v`), `mulr_ilt1`/`mulr_gt0`/`subr_gt0` in
+`algebra/num_theory/numdomain.v`; extra imports for the proof: `sequences`, `lra`):
 
 * Step 1: prove `forall n, (1 <= n)%N -> 0 < x n < 1` by induction (`lra` or
   `mulr_gt0`, `mulr_ilt1`, `subr_gt0`), then `nonincreasing_seq` / `has_lbound` for the
@@ -213,8 +266,8 @@ Peano `le` rather than the boolean `(1 <= n)%N` (`/leP` or `ssrnat`'s `leP` conv
 
 | file | status |
 |---|---|
-| `putnam_1966_a3.v` | upstream text verbatim after a header comment (no compat lines: it would not compile with them either). **Does not compile** on Coq 8.18.0, by design of the `compile` verdict; error quoted in section 2, reproduced in check 2. |
-| `putnam_1966_a3_corrected.v` | corrected statement, ends in `Proof. Admitted.`; **compiles** (check 1); differs from upstream by the one token `(1 : R)` and the marked compat lines. |
+| `putnam_1966_a3.v` | upstream text verbatim after a header comment (no compat lines: it would not compile with them either). **Does not compile** on Coq 8.18.0 (error at `--> 1`, section 2, check 2) nor on Rocq 9.1.1 (first error at the top-level `Variable`, check 0), by design of the `compile` verdict. |
+| `putnam_1966_a3_corrected.v` | corrected statement, ends in `Proof. Admitted.`; **compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 (check 0) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 (check 1)**, no warning from its own lines on either; verifier ALL CHECKS PASSED on both; differs from upstream by the one token `(1 : R)` and the marked compat lines. |
 | `putnam_1966_a3_statement_is_false.v` / `_vacuous.v` | not applicable (verdict `compile`; statement faithful, satisfiable hypotheses, true conclusion). |
 | `putnam_1966_a3_corrected_proof.v` | not written in this phase (proof phase). Sketch in section 5. |
 | `NOTES.md` | this file. |

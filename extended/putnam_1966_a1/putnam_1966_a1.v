@@ -16,7 +16,7 @@
    the encoded f is four times the intended f, and the theorem claims x y = 4 x y. At
    x = 2, y = 1 it asserts 2 = f 3 - f 1 = 8 - 0. Proof: putnam_1966_a1_statement_is_false.v.
    Proposed fix (two subterms of the definition of f): putnam_1966_a1_corrected.v.
-   Verified: compiles on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
+   Verified: compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
    About the warnings: the import line below triggers library warnings emitted by MathComp
    itself (overridden notations, ambiguous coercion paths). They are library warnings, not
    warnings about this file: none of this file's own lines produce any. The import line is

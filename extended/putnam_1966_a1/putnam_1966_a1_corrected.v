@@ -29,7 +29,7 @@
    (Int "/", floor division on nonnegative arguments); dividing the natural number before
    the cast is the same function on 0 <= m and needs no additional import (intdiv, which
    provides "%/" on int, is not among the upstream imports).
-   Verified: compiles on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
+   Verified: compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
    About the warnings: the import line below triggers library warnings emitted by MathComp
    itself (overridden notations, ambiguous coercion paths). They are library warnings, not
    warnings about this file: none of this file's own lines produce any. The import line is

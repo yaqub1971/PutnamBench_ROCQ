@@ -10,18 +10,18 @@
    Defect (audit verdict: compile): the file does not compile. The target of "-->" on the
    last line of the statement is the bare numeral 3, which elaborates to 3%:R in an unknown
    additive monoid and cannot be unified with the filter structure the notation expects:
-     File "./putnam_1966_a6.v", line 18, characters 37-38:
-     Error: The term "3" has type "GRing.Nmodule.sort ?t"
+     File "./putnam_1966_a6.v", line 48, characters 37-38:  [line 48 of this copy = upstream line 18]
+     Error: [printout of the environment omitted] The term "3" has type "GRing.Nmodule.sort ?t"
      while it is expected to have type "Filtered.sort ?s".
    Mathematically the statement is faithful to the problem (it is the Lean statement of the
    same problem, transcribed). Proposed fix, one token, "--> 3" -> "--> (3 : R)":
    putnam_1966_a6_corrected.v. No evidence file: the statement is neither false nor vacuous.
-   On Rocq 9.1 the file would in addition be rejected for declaring "Variable R : realType."
-   outside a Section (an error since Rocq 9.0; Coq 8.x only warns), which the marked compat
-   line of putnam_1966_a6_corrected.v addresses there.
+   Does not compile on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix):
+   Error at line 43, Use of "Variable" or "Hypothesis" outside sections [declaration-outside-section]
+   (an error since Rocq 9.0; Coq 8.x only warns; a compat line of the corrected file handles it).
    Does not compile on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04):
    the error quoted above (checked by running coqc on this file; the build log of the
-   upstream file shows the same error at the same position).
+   upstream file shows the same error, at upstream line 18).
    About the warnings: the import line below triggers library warnings emitted by MathComp
    itself (overridden notations, ambiguous coercion paths); they are not about this file.
    The import lines are kept exactly as upstream wrote them so that the statement stays

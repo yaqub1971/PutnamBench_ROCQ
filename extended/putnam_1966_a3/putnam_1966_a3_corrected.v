@@ -29,7 +29,7 @@
    error since Rocq 9.0; (2) with MathComp 2.5, importing all_ssreflect after all_algebra
    (upstream's order) overrides the ring notations 1 and %:R, so ssralg is re-imported.
    Neither changes the meaning of the statement; both are no-ops on Coq 8.18 / MathComp 2.1.
-   Verified: compiles on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
+   Verified: compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04).
    About the warnings: the PutnamBench Rocq statements were written for Coq 8.x with
    MathComp 2.1; the import lines below trigger warnings emitted by MathComp itself
    (ambiguous coercion paths, overridden notations). They are library warnings, not

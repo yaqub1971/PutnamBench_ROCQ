@@ -36,9 +36,9 @@ constant function `fun _ => g x * 1 + 0 * 1`, so
 `T g x = T (fun _ => g x * 1 + 0 * 1) x = g x * T 1 x + 0 * T 1 x = g x * T 1 x`,
 where `1` is the constant function 1 and `T 1 \in C` by `imageTC`. The upstream theorem
 is therefore provable in a few lines. This was machine-checked (scratch file
-`upstream_is_trivial.v`, same preamble as upstream plus `From mathcomp Require Import
-boolp.` and `Import GRing.Theory Num.Theory Order.Theory.`, `R` a `Section` variable; the
-theorem is the upstream statement verbatim):
+`upstream_is_trivial.v`, same preamble as upstream plus the compat lines of kind (1),
+`From mathcomp Require Import boolp.` and `Import GRing.Theory Num.Theory Order.Theory.`,
+`R` a `Section` variable; the theorem is the upstream statement verbatim):
 
 ```coq
 Proof.
@@ -54,7 +54,8 @@ by rewrite (linearT (g x) 0 _ _ one_C one_C) mul0r addr0 mulrC.
 Qed.
 ```
 
-`coqc` exit status 0; `Print Assumptions` lists exactly `boolp.propositional_extensionality`,
+Exit status 0 on Rocq 9.1.1 (`rocq compile`) and on Coq 8.18.0 (`coqc`); on both,
+`Print Assumptions` lists exactly `boolp.propositional_extensionality`,
 `boolp.functional_extensionality_dep`, `boolp.constructive_indefinite_description` (the
 classical axioms of `mathcomp.classical`; nothing else). The only use of `localT` is with
 `r = s = x`. So the upstream statement encodes a different, contentless problem: it is
@@ -96,54 +97,66 @@ Locality is now assumed only for nondegenerate closed intervals `[r, s]`, `r < s
   and the degenerate case that trivialized the upstream statement is removed.
 * Nothing else changes: same set `C`, same `imageTC`, same `linearT`, same conclusion,
   same library, names, order and style. No hypothesis is added.
-* The hypotheses remain satisfiable (section 4, check 3) and the corrected theorem is
-  provable by the intended argument (section 4, check 4), which uses locality only on
+* The hypotheses remain satisfiable (section 4, check 5) and the corrected theorem is
+  provable by the intended argument (section 4, check 6), which uses locality only on
   the intervals `[x0 - 1, x0]` and `[x0, x0 + 1]`.
 * Lean comparison: the Lean statement is otherwise the model of the Rocq one (same
   `C`, `T`, `imageTC`, `linearT`, `localT`, conclusion) but has the same `r ≤ s`; on this
   one point the Lean statement was not followed, since it has the same defect.
 
 Compat lines (both files): kind (1) after the upstream import lines and kind (2)
-before `Variable R : realType.`, copied from the root files. Kind (2) is needed: on
-this toolchain the upstream `Variable` line itself emits a `local-declaration` warning
-(the upstream build log shows it at line 13), which the CI counts as a warning from the
-file's own lines, and Rocq >= 9.0 rejects the line. Kind (1) is a precaution: the
+before `Variable R : realType.`, copied from the root files. Kind (2) is needed: the
+verbatim upstream file fails on Rocq 9.1.1 at line 13 (`Variable R : realType.`) with
+"Error: Use of "Variable" or "Hypothesis" outside sections behaves as "#[local]
+Parameter" ... [declaration-outside-section]" (checked with `rocq compile` on a scratch
+copy), and on Coq 8.18 the same line emits a `local-declaration` warning (the upstream
+build log shows it at line 13), which the CI counts as a warning from the file's own
+lines. Kind (1) is a precaution: the
 statement uses no `1`, `-1` or `%:R` numeral but does use `ring_scope` arithmetic on `R`
 (`a * f x + b * g x`, `f x * g x`); the line is a no-op on MathComp <= 2.4 and changes
 nothing mathematically. Kind (3) does not apply (no derivative notation).
 
-## 4. Sanity checks run (Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0, Ubuntu 24.04)
+## 4. Sanity checks run
 
-1. Compile, `cd /home/user/PutnamBench_ROCQ/extended/putnam_1966_a5 && coqc -R . "" putnam_1966_a5.v`:
-   exit 0. The log has 23 warnings, all attached to the first import line
-   (`all_algebra all_ssreflect`; ambiguous coercion paths and overridden notations
-   emitted by MathComp), none from any other line; in particular the `Variable` line no
-   longer warns (compat line of kind (2)) and the compat re-import of `ssralg` is silent.
-2. Compile, `coqc -R . "" putnam_1966_a5_corrected.v`: exit 0, same 23 library warnings
-   at the first import line, none from the file's own lines.
+Toolchains: Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4
+(Nix, `source /opt/rocq91/bin/rocq-env.sh`, `rocq compile`) and Coq 8.18.0 / MathComp
+2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04, `coqc`). Build
+products were deleted between the two toolchains.
+
+1. Compile `putnam_1966_a5.v`, from the problem folder with `-R . ""`: exit 0 on both
+   toolchains. All warnings are attached to the first import line
+   (`all_algebra all_ssreflect`, line 40): 30 on Rocq 9.1.1 (deprecated
+   `all_ssreflect`, ambiguous coercion paths, overridden notations, all emitted by the
+   libraries), 23 on Coq 8.18.0. None comes from any other line; in particular the
+   `Variable` line does not warn (compat line of kind (2)) and the compat re-import of
+   `ssralg` is silent.
+2. Compile `putnam_1966_a5_corrected.v`: exit 0 on both toolchains, with the same 30
+   (Rocq 9.1.1) / 23 (Coq 8.18.0) library warnings, all at the first import line
+   (line 44), none from the file's own lines.
 3. Statement integrity, with the CI's `strip` (drop the header comment and the marked
    compat lines): the upstream copy is byte-identical to
    `scratchpad/upstream/coq/putnam_1966_a5.v` (`diff` empty); the corrected file differs
    from upstream in exactly one line (diff shows 2 changed lines = the `localT` line).
 4. Upstream statement is trivially provable: scratch file `upstream_is_trivial.v`
-   (section 2), exit 0, `Print Assumptions`: only the three `boolp` axioms.
-5. Corrected hypotheses are satisfiable (non-vacuity): scratch file `witness.v`, exit 0.
-   With `Tw f := fun x => x * f x` the three hypotheses of the corrected statement are
-   proved: `Tw_imageTC` (`cvgM` with `cvg_id`), `Tw_linearT` (`mulrDr`, `mulrCA`),
-   `Tw_localT` (immediate, for every `r < s`), and the conclusion holds with `h = id`.
-   The identity `T f := f` is another witness. The pointwise instance used in check 4 is
-   no longer available: `localT x x` would need `x < x`, which is false (`ltxx`).
+   (section 2), exit 0 on both toolchains, `Print Assumptions`: only the three `boolp`
+   axioms.
+5. Corrected hypotheses are satisfiable (non-vacuity): scratch file `witness.v`, exit 0
+   on both toolchains. With `Tw f := fun x => x * f x` the three hypotheses of the
+   corrected statement are proved: `Tw_imageTC` (`cvgM` with `cvg_id`), `Tw_linearT`
+   (`mulrDr`, `mulrCA`), `Tw_localT` (immediate, for every `r < s`), and the conclusion
+   holds with `h = id`. The identity `T f := f` is another witness. The pointwise
+   instance used in check 4 is no longer available: `localT x x` would need `x < x`,
+   which is false (`ltxx`).
 6. Corrected statement is provable: scratch file `proof_sketch.v`, containing the
-   corrected theorem verbatim (inside a `Section` with `Variable R : realType`) and the
-   proof of section 5, exit 0, `Print Assumptions`: exactly
-   `boolp.propositional_extensionality`, `boolp.functional_extensionality_dep`,
-   `boolp.constructive_indefinite_description`. This is the intended proof; it is kept
-   in the scratch directory only, since the proof file is not part of this phase.
-7. `grep -rniE "claude|anthropic|gpt|fable|opus|sonnet|openai|gemini"` on the folder:
-   no match.
-
-Not run: Rocq 9.1 / MathComp 2.5 (not available on this machine). The compat lines are
-the repository's standard ones.
+   corrected theorem verbatim (inside a `Section` with `Variable R : realType`, after the
+   compat lines of kind (1)) and the proof of section 5, exit 0 on both toolchains with
+   no warning from its own lines (all 30 / 23 warnings at its first import line);
+   `Print Assumptions`: exactly `boolp.propositional_extensionality`,
+   `boolp.functional_extensionality_dep`, `boolp.constructive_indefinite_description`.
+   This is the intended proof; it is kept in the scratch directory only, since the
+   proof file is not part of this phase.
+7. A case-insensitive search of the folder for AI model and vendor names: none found.
+8. Verifier, run under both toolchains (verdict lines quoted in section 6).
 
 ## 5. Difficulty and proof sketch for `putnam_1966_a5_corrected_proof.v`
 
@@ -152,14 +165,16 @@ no real mathematics beyond the pasting argument). About 60 lines of ssreflect.
 
 Extra imports for the proof: `From mathcomp Require Import boolp.` (for `funext`),
 `Import GRing.Theory Num.Theory Order.Theory.`, and `Import numFieldNormedType.Exports.`
-(needed for `cvgD`, which is stated for a `normedModType`; `cvgM`/`cvgMr` need only a
-`numFieldType`).
+(needed for `cvgD`, which is stated for a `normedModType`; `cvgM` needs only a
+`numFieldType`). The proof file also needs the compat lines of kind (1) after the upstream
+import block (as in the statement files): under Rocq 9.1 / MathComp 2.5 the ring numerals
+of the proof (`1`, `0`) do not typecheck without the `ssralg` re-import.
 
 Strategy (all steps compiled in `proof_sketch.v`):
 
 1. `cst_C c : (fun _ => c) \in C` -- `rewrite in_setE /C /=; exact: cst_continuous`.
 2. `lin_C a b f g : f \in C -> g \in C -> (fun x => a * f x + b * g x) \in C` --
-   pointwise: `cvgMr` for each summand, then `exact: (cvgD h1 h2)` (conversion unfolds the
+   pointwise: `cvgM` with `cvg_cst` for each summand, then `exact: (cvgD h1 h2)` (conversion unfolds the
    function-ring `+`).
 3. `T0x h r s x0 : h \in C -> r < s -> r <= x0 <= s -> (forall x, r <= x <= s -> h x = 0) -> T h x0 = 0`:
    `h` agrees on `[r, s]` with `fun x => 0 * h x + 0 * h x` (in `C` by `lin_C`), so by
@@ -184,7 +199,7 @@ Strategy (all steps compiled in `proof_sketch.v`):
    `mul1r mulNr`, `/eqP`, `eq_sym subr_eq0` this is `T g x0 = g x0 * T 1 x0`; finish
    with `mulrC`.
 
-Library facts used: `in_setE`, `cst_continuous`, `cvg_id`, `cvg_cst`, `cvgMr`, `cvgD`,
+Library facts used: `in_setE`, `cst_continuous`, `cvg_id`, `cvg_cst`, `cvgM`, `cvgD`,
 `continuous_comp`, `continuous_max`, `continuous_min` (MathComp-Analysis); `funext`
 (`boolp`); `max_r`, `min_r`, `leP`, `lexx`, `le_anti` (`order`); `mul0r`, `mul1r`,
 `mulr1`, `mulNr`, `mulrC`, `add0r`, `addr0`, `subrr`, `subr_eq0`, `ltrBlDr`, `ltrDl`,
@@ -192,17 +207,44 @@ Library facts used: `in_setE`, `cst_continuous`, `cvg_id`, `cvg_cst`, `cvgMr`, `
 `Print Assumptions` of the proof file: the statement's `Variable R` and the three
 `boolp` axioms.
 
-Portability notes for Rocq 9.1 / MathComp 2.5 / MathComp-Analysis 1.16: all lemma names
-above are the post-2.0 MathComp names (`ltrBlDr`, `lerDl`, ...), `Num.max`/`Num.min` are
-used rather than the `Def`-module notations `maxr`/`minr`; `continuous_max`/`continuous_min`
-and `cvg_cst`/`cvg_id` have existed unchanged in MathComp-Analysis since 0.6.
+Portability: the script in `proof_sketch.v` (with the kind (1) compat lines) compiles on
+both Rocq 9.1.1 / MathComp-Analysis 1.16.0 and Coq 8.18.0 / MathComp-Analysis 1.0.0
+without warnings from its own lines. An earlier version used `cvgMr`, which is deprecated
+since MathComp-Analysis 1.12.0 (a warning at the proof's own line, i.e. a CI failure on
+Rocq 9.1); it was replaced by `cvgM` with `cvg_cst`, which exists undeprecated in both
+versions. All other lemma names are the post-2.0 MathComp names (`ltrBlDr`, `lerDl`, ...);
+`Num.max`/`Num.min` are used rather than the `Def`-module notations `maxr`/`minr`.
 
 ## 6. Status of the files
 
 | file | status |
 |---|---|
-| `putnam_1966_a5.v` | upstream statement, byte-identical apart from the header comment and the marked compat lines (checked with the CI strip); ends in `Proof. Admitted.`; compiles, no own-line warnings |
-| `putnam_1966_a5_corrected.v` | corrected statement (one line changed: `r <= s` -> `r < s` in `localT`); ends in `Proof. Admitted.`; compiles, no own-line warnings |
+| `putnam_1966_a5.v` | upstream statement, byte-identical apart from the header comment and the marked compat lines (checked with the CI strip, exact string equality including the missing final newline); ends in `Proof. Admitted.`; compiles on Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and on Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04), no own-line warnings on either |
+| `putnam_1966_a5_corrected.v` | corrected statement (one line changed: `r <= s` -> `r < s` in `localT`); ends in `Proof. Admitted.`; compiles on both toolchains above, no own-line warnings on either |
 | `putnam_1966_a5_statement_is_false.v` / `_vacuous.v` | not applicable (verdict unfaithful: the upstream statement is provable, see section 2 and check 4) |
 | `putnam_1966_a5_corrected_proof.v` | not written in this phase; the check 6 script is a complete proof to transplant |
 | `NOTES.md` | this file |
+
+Verifier (`extended/verify.sh putnam_1966_a5`), verdict lines:
+
+Rocq 9.1.1 (`source /opt/rocq91/bin/rocq-env.sh && cd /home/user/PutnamBench_ROCQ/extended && bash verify.sh putnam_1966_a5`):
+
+```
+toolchain: The Rocq Prover, version 9.1.1  (rocq compile)
+OK   putnam_1966_a5.v (upstream copy) compiles
+OK   putnam_1966_a5_corrected.v compiles
+OK   putnam_1966_a5_corrected.v ends in Admitted (statement only)
+OK   putnam_1966_a5.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+ALL CHECKS PASSED
+```
+
+Coq 8.18.0 (`cd /home/user/PutnamBench_ROCQ/extended && bash verify.sh putnam_1966_a5`):
+
+```
+toolchain: The Coq Proof Assistant, version 8.18.0  (coqc)
+OK   putnam_1966_a5.v (upstream copy) compiles
+OK   putnam_1966_a5_corrected.v compiles
+OK   putnam_1966_a5_corrected.v ends in Admitted (statement only)
+OK   putnam_1966_a5.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+ALL CHECKS PASSED
+```

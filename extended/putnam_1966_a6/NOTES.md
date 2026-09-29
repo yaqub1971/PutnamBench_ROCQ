@@ -32,18 +32,21 @@ The bare numeral `3` elaborates, in `ring_scope`, to `3%:R` in an unknown additi
 and the `-->` notation needs a point of a filtered type; unification fails:
 
     File "./putnam_1966_a6.v", line 18, characters 37-38:
-    Error: The term "3" has type "GRing.Nmodule.sort ?t"
+    Error: [printout of the environment omitted]
+    The term "3" has type "GRing.Nmodule.sort ?t"
     while it is expected to have type "Filtered.sort ?s".
 
-(This is the error in the audit's build log and the one I reproduced, see §4.) It is a
+(This is the error in the audit's build log, at upstream line 18; I reproduced it with Coq
+8.18 on the copy in this folder, where it sits at line 48, see §4.) It is a
 pure elaboration problem; the intended type is obviously `R`, the `realType` of the
 statement. Mathematically the upstream text is a faithful transcription of the Lean
 statement (same `a`, same recursion, same 1-based indexing, same limit).
 
-Whether the file compiled on the benchmark authors' (unpinned) versions is unknown; on the
-repository's CI toolchain (Rocq 9.1) it would in addition be rejected for
-`Variable R : realType.` outside a `Section` (an error since Rocq 9.0), which the marked
-compat line of the corrected file addresses.
+Whether the file compiled on the benchmark authors' (unpinned) versions is unknown. On the
+repository's CI toolchain (Rocq 9.1.1) it is rejected even earlier, at line 43 of the copy
+(`Variable R : realType.` outside a `Section`, error `[declaration-outside-section]`, an
+error since Rocq 9.0; Coq 8.x only warns), which the marked compat line of the corrected
+file addresses; see §4.
 
 ## 3. The fix and why it is faithful
 
@@ -84,41 +87,77 @@ kind (2) before `Variable R : realType.` (needed on Rocq >= 9.0); kind (1), the 
 `From mathcomp Require Import ssralg.`, after the upstream import lines because the
 statement uses the ring notations `n%:R`, `1 + ...`, `3` (the brief's criterion). Note that
 this file's upstream import order is `all_ssreflect all_algebra` (the reverse of the
-1962 files), so the re-import is expected to be redundant on MathComp 2.5; it is a
-harmless no-op re-import and is kept for uniformity with the repository. Kind (3)
-(derivative notations) does not apply. I could not run Rocq 9.1 here; the header says so.
+1962 files), so the re-import is redundant on MathComp 2.5: a scratch copy of the corrected
+file with the three kind-(1) lines deleted also compiles on Rocq 9.1.1 (exit 0, all 27
+warnings at the import line), see §4. It is a harmless re-import and is kept for
+uniformity with the repository. Kind (3) (derivative notations) does not apply.
 
-## 4. Sanity checks actually run (Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0, Ubuntu 24.04)
+## 4. Sanity checks actually run (Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix) and Coq 8.18.0 / MathComp 2.1.0 / MathComp-Analysis 1.0.0 / Coquelicot 3.4.1 (Ubuntu 24.04))
 
-1. `cd extended/putnam_1966_a6 && coqc -R . "" putnam_1966_a6_corrected.v` — exit 0,
-   `.vo` produced. Warnings in the log: 17 `notation-overridden` and 6 `ambiguous-paths`,
-   all attached to the `From mathcomp Require Import` lines (library warnings); **no
-   warning from any of the file's own lines** (checked with the same `grep` filter that
-   `ci/verify.sh` uses).
-2. `coqc -R . "" putnam_1966_a6.v` (the upstream copy) — exit 1, the error quoted in §2
-   at line 48 (= upstream line 18 + the 30-line header), characters 37-38. As expected: the
-   file is kept verbatim precisely because it does not compile.
-3. Byte-identity: with the header stripped, `putnam_1966_a6.v` is identical to the
+1. Rocq 9.1.1 (`source /opt/rocq91/bin/rocq-env.sh`):
+   `cd extended/putnam_1966_a6 && rocq compile -R . "" putnam_1966_a6_corrected.v` —
+   exit 0, `.vo` produced; all 27 warnings of the log are reported at line 42 (the first
+   `From mathcomp Require Import` line: library warnings); **no warning from any of the
+   file's own lines**.
+2. Rocq 9.1.1: `rocq compile -R . "" putnam_1966_a6.v` (the upstream copy) — exit 1,
+   `File "./putnam_1966_a6.v", line 43, characters 0-22: Error: Use of "Variable" or
+   "Hypothesis" outside sections behaves as "#[local] Parameter" or "#[local] Axiom".
+   [declaration-outside-section,vernacular,default]`. Expected (kept verbatim as evidence).
+3. Rocq 9.1.1, scratch copy of the corrected file without the three kind-(1) compat lines:
+   exit 0, all 27 warnings at the import line (so kind (1) is redundant here, see §3).
+4. Coq 8.18.0 (plain `coqc`, after deleting the 9.1 build products):
+   `coqc -R . "" putnam_1966_a6_corrected.v` — exit 0, `.vo` produced; all 23 warnings
+   (`notation-overridden`, `ambiguous-paths`) at line 42, the import line; **no warning
+   from any of the file's own lines**.
+5. Coq 8.18.0: `coqc -R . "" putnam_1966_a6.v` (the upstream copy) — exit 1, the error
+   quoted in §2 at line 48 of the copy (= upstream line 18 + the 30-line header),
+   characters 37-38. As expected: the file is kept verbatim precisely because it does not
+   compile.
+6. Byte-identity: with the header stripped, `putnam_1966_a6.v` is identical to the
    upstream `putnam_1966_a6.v` (`diff` empty). With header and the marked compat lines
    stripped (the `strip` filter of `ci/verify.sh`), `putnam_1966_a6_corrected.v` differs
    from upstream in exactly one line (2 diff lines), shown in §3.
-4. Non-vacuity of the hypotheses (scratch file `check.v`, compiled, exit 0): the
+7. Non-vacuity of the hypotheses (scratch file `check.v`, compiled with exit 0 on both
+   Rocq 9.1.1 and Coq 8.18.0): the
    explicit truncation `a n m := go (n - m) n m` with `go 0 n m = n%:R`,
    `go k.+1 n m = m%:R * sqrt(1 + go k n m.+1)` satisfies the hypothesis `ha` of the
    statement verbatim (`Lemma a_witness`, proof: `subnn` for `m = n`, `subnSK` for
    `m < n`). So the statement is not vacuous, and `ha` pins down `a n m` for all
    1 <= m <= n (values outside that range are irrelevant to the conclusion).
-5. Small instances (same scratch file, all proved): `a 1 1 = 1`, `a 2 1 = sqrt 3`,
+8. Small instances (same scratch file, all proved): `a 1 1 = 1`, `a 2 1 = sqrt 3`,
    `a 3 1 = sqrt(1 + 2 sqrt(1 + 3)) = sqrt 5` (using `nat1r`, `natrX`, `sqrtr_sqr`,
    `ger0_norm`, `natrM`). The corrected conclusion also typechecks against this witness
    and inside a `Section` (shape checks in the same file).
-6. Numerical check of the claim and of the bound used in the proof sketch (Python, double
+9. Numerical check of the claim and of the bound used in the proof sketch (Python, double
    precision): a_n(1) = 1, 1.7320508, 2.2360680, 2.5598302, 2.7550533, ... ,
    2.98992 (n = 10), 2.9999879 (n = 20), 3.0000000 (n = 50, 100, 1000); and
    0 <= 3 - a_n(1) <= 6/(n+2) held for every n tested (1, 2, 3, 4, 5, 10, 20, 50, 100, 1000).
-7. `grep -i` for model names in both `.v` files: none.
+10. `grep -i` for model names in both `.v` files: none.
+11. Rocq 9.1.1 / MathComp 2.5.0 / MathComp-Analysis 1.16.0 / Coquelicot 3.4.4 (Nix):
+    `bash verify.sh putnam_1966_a6` -> ALL CHECKS PASSED (corrected file compiles, no
+    own-line warnings; the upstream copy fails first at line 43 with "Use of Variable or
+    Hypothesis outside sections" [declaration-outside-section]; upstream byte-identity OK).
+    Verdict lines:
 
-Not run: anything on Rocq 9.1 / MathComp 2.5 / MathComp-Analysis 1.16 (not installed here).
+        toolchain: The Rocq Prover, version 9.1.1  (rocq compile)
+        NOTE putnam_1966_a6.v (upstream copy) does not compile on this toolchain (expected for the 'compile' verdicts)
+        OK   putnam_1966_a6_corrected.v compiles
+        OK   putnam_1966_a6_corrected.v ends in Admitted (statement only)
+        OK   putnam_1966_a6.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+        ALL CHECKS PASSED
+
+12. Coq 8.18.0 (plain PATH): `bash verify.sh putnam_1966_a6` -> ALL CHECKS PASSED
+    (a first run could not download the upstream file for the byte-identity step,
+    "curl: (23) Failure writing output to destination", a transient failure in the shared
+    download folder; I compared by hand, `tail -n +31 putnam_1966_a6.v | diff - <upstream>`
+    empty, and a second run passed that step too). Verdict lines of the second run:
+
+        toolchain: The Coq Proof Assistant, version 8.18.0  (coqc)
+        NOTE putnam_1966_a6.v (upstream copy) does not compile on this toolchain (expected for the 'compile' verdicts)
+        OK   putnam_1966_a6_corrected.v compiles
+        OK   putnam_1966_a6_corrected.v ends in Admitted (statement only)
+        OK   putnam_1966_a6.v: identical to upstream PutnamBench 4dbe26e apart from header and compat lines
+        ALL CHECKS PASSED
 
 ## 5. Difficulty estimate and proof sketch for `putnam_1966_a6_corrected_proof.v`
 
@@ -157,11 +196,13 @@ Sketch. Fix `a`, `ha`. Write L m := m%:R * (m%:R + 2) (so L 1 = 3).
 
 | file | status |
 |---|---|
-| `putnam_1966_a6.v` | upstream statement verbatim + header; does **not** compile (the audited error; kept as evidence, as the brief prescribes for `compile` verdicts) |
-| `putnam_1966_a6_corrected.v` | corrected statement (one token: `--> (3 : R)`) + compat lines; **compiles**, no own-line warnings; ends in `Proof. Admitted.` |
+| `putnam_1966_a6.v` | upstream statement verbatim + header; does **not** compile (Coq 8.18: the audited error at line 48; Rocq 9.1.1: `declaration-outside-section` at line 43; kept as evidence, as the brief prescribes for `compile` verdicts) |
+| `putnam_1966_a6_corrected.v` | corrected statement (one token: `--> (3 : R)`) + compat lines; **compiles on Rocq 9.1.1 and on Coq 8.18.0**, no own-line warnings on either; ends in `Proof. Admitted.` |
 | `putnam_1966_a6_statement_is_false.v` / `_vacuous.v` | not written: the statement is neither false nor vacuous (the defect is a compile error), so there is no evidence to derive |
 | `putnam_1966_a6_corrected_proof.v` | not part of this phase (proof sketch in §5) |
 | `NOTES.md` | this file |
 
-Scratch files (not deliverables): `.../scratchpad/work/putnam_1966_a6/check.v` (+ its log
-`check.log`), `corrected.log`, `upstream_copy.log`.
+Scratch files (not deliverables), in `.../scratchpad/work/putnam_1966_a6/`: `check.v`
+(+ `check.log`, `check91.log`, `check818.log`), `corrected91.log`, `corrected818.log`,
+`upstream91.log`, `upstream818.log`, `nocompat1/` (corrected file minus the kind-(1)
+compat lines), `verify91.log`, `verify818.log`.
