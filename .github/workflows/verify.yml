@@ -22,3 +22,21 @@ jobs:
             startGroup "Verify"
               bash ci/verify.sh
             endGroup
+  verify-extended:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: coq-community/docker-coq-action@v1
+        with:
+          custom_image: mathcomp/mathcomp:2.5.0-rocq-prover-9.1
+          custom_script: |
+            startGroup "Workaround permission issue"
+              sudo chown -R 1000:1000 .
+            endGroup
+            startGroup "Install MathComp-Analysis 1.16, zify, Algebra-Tactics, real-closed and Coquelicot 3.4.4"
+              opam update -y
+              opam install -y -j 4 coq-mathcomp-analysis.1.16.0 coq-mathcomp-zify coq-mathcomp-algebra-tactics coq-mathcomp-real-closed coq-coquelicot.3.4.4
+            endGroup
+            startGroup "Verify the extended set (extended/<problem>/)"
+              bash extended/verify.sh
+            endGroup
